@@ -1,0 +1,81 @@
+@model List<QuanLyKho.Models.Entities.AuditLog>
+@{
+    ViewData["Title"] = "Nhật Ký Hệ Thống";
+    string? from = ViewBag.From as string;
+    string? to = ViewBag.To as string;
+    string? entityType = ViewBag.EntityType as string;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-shield-check text-secondary me-2"></i>Nhật Ký Thao Tác Hệ Thống (Audit Logs)</h4>
+        <p class="text-muted small mb-0">Truy vết hành động nhạy cảm: hoàn tất/hủy chứng từ, điều chỉnh tồn, đổi quyền tài khoản (F.8.4, BR.18)</p>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <select name="entityType" class="form-select">
+                    <option value="">-- Tất cả phân hệ --</option>
+                    <option value="Invoice" selected="@(entityType == "Invoice")">Hóa đơn bán hàng</option>
+                    <option value="PurchaseReceipt" selected="@(entityType == "PurchaseReceipt")">Phiếu nhập kho</option>
+                    <option value="ReturnReceipt" selected="@(entityType == "ReturnReceipt")">Phiếu trả hàng</option>
+                    <option value="StockCount" selected="@(entityType == "StockCount")">Kiểm kê & điều chỉnh tồn</option>
+                    <option value="Product" selected="@(entityType == "Product")">Sản phẩm</option>
+                    <option value="User" selected="@(entityType == "User")">Tài khoản</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <input type="date" name="from" class="form-control" value="@from" placeholder="Từ ngày" />
+            </div>
+            <div class="col-md-3">
+                <input type="date" name="to" class="form-control" value="@to" placeholder="Đến ngày" />
+            </div>
+            <div class="col-md-2 text-end">
+                <button type="submit" class="btn btn-secondary w-100"><i class="bi bi-funnel me-1"></i> Lọc nhật ký</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Thời gian</th>
+                    <th>Người thực hiện</th>
+                    <th>Hành động</th>
+                    <th>Đối tượng</th>
+                    <th>Mã đối tượng</th>
+                    <th class="pe-3">Chi tiết nội dung</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Count == 0)
+                {
+                    <tr><td colspan="6" class="text-center py-4 text-muted">Không tìm thấy nhật ký thao tác nào.</td></tr>
+                }
+                @foreach (var log in Model)
+                {
+                    <tr>
+                        <td class="ps-3 small text-muted">@log.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                        <td class="small fw-semibold">
+                            @(log.User?.FullName ?? log.User?.UserName ?? "Hệ thống")
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary-subtle text-secondary border">
+                                @log.Action
+                            </span>
+                        </td>
+                        <td><span class="badge bg-light text-dark border">@log.EntityType</span></td>
+                        <td class="small font-monospace">@log.EntityId</td>
+                        <td class="small text-muted pe-3">@log.Details</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

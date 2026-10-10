@@ -1,0 +1,70 @@
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Đăng Nhập Hệ Thống";
+}
+
+<div class="d-flex align-items-center justify-content-center min-vh-100 p-3" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);">
+    <div class="card shadow-2xl border-0" style="max-width: 440px; width: 100%; border-radius: 16px; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(16px); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);">
+        <div class="card-body p-4 p-md-5">
+            <div class="text-center mb-4">
+                <div class="d-inline-flex p-3 rounded-4 mb-3 text-white" style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); box-shadow: 0 10px 25px rgba(79, 70, 229, 0.35);">
+                    <i class="bi bi-box-seam-fill fs-2"></i>
+                </div>
+                <h4 class="fw-bold text-dark mb-1">Văn Phòng Phẩm Minh Anh</h4>
+                <p class="text-muted small">Hệ thống Quản lý Bán hàng & Tồn kho</p>
+            </div>
+
+            @if (ViewBag.Error != null)
+            {
+                <div class="alert alert-danger border-0 py-2 small d-flex align-items-center mb-4 rounded-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2 fs-6"></i>@ViewBag.Error
+                </div>
+            }
+
+            <form asp-controller="Account" asp-action="Login" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-muted small text-uppercase" style="letter-spacing: 0.05em;">Tên đăng nhập</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person-fill"></i></span>
+                        <input type="text" name="username" class="form-control border-start-0 ps-0" placeholder="Nhập tài khoản..." required autofocus />
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-muted small text-uppercase" style="letter-spacing: 0.05em;">Mật khẩu</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-lock-fill"></i></span>
+                        <input type="password" name="password" class="form-control border-start-0 ps-0" placeholder="Nhập mật khẩu..." required />
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-2">
+                    <i class="bi bi-box-arrow-in-right fs-5"></i> ĐĂNG NHẬP
+                </button>
+            </form>
+
+            <hr class="my-4" style="opacity: 0.1;" />
+
+            <div class="small p-3 rounded-3 border" style="background-color: #f8fafc;">
+                <div class="fw-bold mb-2 text-primary d-flex align-items-center gap-1">
+                    <i class="bi bi-info-circle-fill"></i> Tài khoản mẫu dùng thử:
+                </div>
+                <div class="d-flex justify-content-between mb-1 pb-1 border-bottom">
+                    <span class="text-muted">Admin (Chủ cửa hàng):</span>
+                    <code class="fw-bold text-dark">admin / admin123</code>
+                </div>
+                <div class="d-flex justify-content-between mb-1 pb-1 border-bottom">
+                    <span class="text-muted">Nhân viên kho:</span>
+                    <code class="fw-bold text-dark">kho01 / kho123</code>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">Nhân viên bán hàng:</span>
+                    <code class="fw-bold text-dark">banhang01 / banhang123</code>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

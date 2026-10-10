@@ -1,0 +1,259 @@
+@using QuanLyKho.Services.Interfaces
+@using QuanLyKho.Models.Entities
+@{
+    ViewData["Title"] = "Dashboard Tổng Quan";
+    var rev = ViewBag.TodayRevenue as RevenueReportDto;
+    var stock = ViewBag.StockSummary as StockReportDto;
+    var alerts = ViewBag.OpenAlerts as List<LowStockAlert> ?? new List<LowStockAlert>();
+    var recentInvoices = ViewBag.RecentInvoices as List<Invoice> ?? new List<Invoice>();
+    var recentTransactions = ViewBag.RecentTransactions as List<InventoryTransaction> ?? new List<InventoryTransaction>();
+}
+
+<!-- Welcome & Action Header -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-1 text-dark">Tổng Quan Hoạt Động Cửa Hàng</h4>
+        <p class="text-muted small mb-0">Theo dõi doanh thu, cảnh báo kho và trạng thái giao dịch theo thời gian thực</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-controller="Invoice" asp-action="Pos" class="btn btn-success fw-bold px-3 py-2 shadow-sm d-flex align-items-center gap-2">
+            <i class="bi bi-cart-plus-fill fs-5"></i> Bán Hàng (POS)
+        </a>
+        <a asp-controller="PurchaseReceipt" asp-action="Create" class="btn btn-outline-primary fw-semibold px-3 py-2 shadow-sm d-flex align-items-center gap-2">
+            <i class="bi bi-box-arrow-in-down fs-5"></i> Nhập Hàng
+        </a>
+    </div>
+</div>
+
+@if (alerts.Count > 0)
+{
+    <div class="alert alert-warning border-0 shadow-sm mb-4 d-flex align-items-center justify-content-between p-3 rounded-3" style="background-color: #fffbeb; border-left: 4px solid #f59e0b !important;" role="alert">
+        <div class="d-flex align-items-center gap-3">
+            <div class="bg-warning text-white rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+            </div>
+            <div>
+                <strong class="text-dark d-block">Cảnh báo tồn kho chạm ngưỡng!</strong>
+                <span class="text-muted small">Hiện có <strong>@alerts.Count</strong> mặt hàng dưới định mức tồn tối thiểu cần nhập thêm hàng.</span>
+            </div>
+        </div>
+        <a asp-controller="Inventory" asp-action="Alerts" class="btn btn-sm btn-warning text-dark fw-bold px-3 py-1 shadow-sm">
+            Xử lý ngay <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+    </div>
+}
+
+<!-- Metrics KPI Cards -->
+<div class="row g-3 mb-4">
+    <!-- Doanh thu hôm nay -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-hover border-0 h-100 position-relative overflow-hidden">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 0.05em;">Doanh thu hôm nay</span>
+                        <h3 class="fw-bold text-dark mt-2 mb-1">@((rev?.NetRevenue ?? 0).ToString("N0")) <small class="fs-6 fw-semibold text-muted">đ</small></h3>
+                        <div class="small text-success fw-semibold">
+                            <i class="bi bi-check2-circle me-1"></i>@((rev?.TotalInvoiceCount ?? 0)) đơn hoàn tất
+                        </div>
+                    </div>
+                    <div class="rounded-3 p-3 text-success" style="background-color: #dcfce7;">
+                        <i class="bi bi-cash-stack fs-3"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="progress" style="height: 4px;">
+                <div class="progress-bar bg-success" style="width: 100%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tổng mặt hàng -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-hover border-0 h-100 position-relative overflow-hidden">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 0.05em;">Tổng mặt hàng</span>
+                        <h3 class="fw-bold text-dark mt-2 mb-1">@(stock?.TotalProductCount ?? 0)</h3>
+                        <div class="small text-muted">
+                            <i class="bi bi-boxes me-1"></i>@(stock?.TotalStockQuantity ?? 0) sản phẩm tồn kho
+                        </div>
+                    </div>
+                    <div class="rounded-3 p-3 text-primary" style="background-color: #e0e7ff;">
+                        <i class="bi bi-grid-fill fs-3"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="progress" style="height: 4px;">
+                <div class="progress-bar bg-primary" style="width: 100%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Giá trị tồn kho -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-hover border-0 h-100 position-relative overflow-hidden">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 0.05em;">Giá trị tồn kho</span>
+                        <h3 class="fw-bold text-dark mt-2 mb-1">@((stock?.EstimatedTotalValue ?? 0).ToString("N0")) <small class="fs-6 fw-semibold text-muted">đ</small></h3>
+                        <div class="small text-muted">
+                            <i class="bi bi-tag-fill me-1"></i>Theo giá nhập gần nhất
+                        </div>
+                    </div>
+                    <div class="rounded-3 p-3 text-info" style="background-color: #cffafe;">
+                        <i class="bi bi-wallet2 fs-3"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="progress" style="height: 4px;">
+                <div class="progress-bar bg-info" style="width: 100%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cảnh báo tồn -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-hover border-0 h-100 position-relative overflow-hidden">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 0.05em;">Cảnh báo tồn kho</span>
+                        <h3 class="fw-bold @(alerts.Count > 0 ? "text-danger" : "text-success") mt-2 mb-1">@alerts.Count</h3>
+                        <div class="small @(alerts.Count > 0 ? "text-danger fw-semibold" : "text-muted")">
+                            <i class="bi @(alerts.Count > 0 ? "bi-bell-fill" : "bi-shield-check") me-1"></i>
+                            @(alerts.Count > 0 ? "Cần đặt hàng bổ sung" : "Mức tồn an toàn")
+                        </div>
+                    </div>
+                    <div class="rounded-3 p-3 @(alerts.Count > 0 ? "text-danger" : "text-success")" style="background-color: @(alerts.Count > 0 ? "#fee2e2" : "#dcfce7");">
+                        <i class="bi @(alerts.Count > 0 ? "bi-bell-fill" : "bi-check-all") fs-3"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="progress" style="height: 4px;">
+                <div class="progress-bar @(alerts.Count > 0 ? "bg-danger" : "bg-success")" style="width: 100%"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Transactions & Invoices -->
+<div class="row g-4">
+    <!-- Hóa đơn gần đây -->
+    <div class="col-lg-6">
+        <div class="card border-0 h-100 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 px-4">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="rounded-2 p-2 bg-primary-subtle text-primary d-inline-flex">
+                        <i class="bi bi-receipt"></i>
+                    </span>
+                    <h6 class="fw-bold mb-0 text-dark">Hóa Đơn Bán Gần Đây</h6>
+                </div>
+                <a asp-controller="Invoice" asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                    Xem tất cả <i class="bi bi-chevron-right ms-1"></i>
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Mã HĐ</th>
+                            <th>Thời gian</th>
+                            <th>Thu ngân</th>
+                            <th class="text-end pe-4">Tổng tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (recentInvoices.Count == 0)
+                        {
+                            <tr><td colspan="4" class="text-center py-4 text-muted">Chưa phát sinh hóa đơn bán hàng nào.</td></tr>
+                        }
+                        @foreach (var inv in recentInvoices)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <a asp-controller="Invoice" asp-action="Details" asp-route-id="@inv.InvoiceId" class="fw-bold text-primary text-decoration-none">
+                                        @inv.InvoiceCode
+                                    </a>
+                                </td>
+                                <td class="small text-muted">@inv.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="small fw-semibold">@(inv.CreatedBy?.FullName ?? inv.CreatedBy?.UserName)</td>
+                                <td class="text-end pe-4 fw-bold text-success fs-6">@inv.TotalAmount.ToString("N0") đ</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Biến động kho gần đây -->
+    <div class="col-lg-6">
+        <div class="card border-0 h-100 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 px-4">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="rounded-2 p-2 bg-info-subtle text-info d-inline-flex">
+                        <i class="bi bi-clock-history"></i>
+                    </span>
+                    <h6 class="fw-bold mb-0 text-dark">Biến Động Tồn Gần Đây (Thẻ Kho)</h6>
+                </div>
+                <a asp-controller="Inventory" asp-action="Ledger" class="btn btn-sm btn-outline-secondary">
+                    Xem Sổ kho <i class="bi bi-chevron-right ms-1"></i>
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Sản phẩm</th>
+                            <th>Nghiệp vụ</th>
+                            <th class="text-center">Biến động</th>
+                            <th class="text-end pe-4">Tồn cuối</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (recentTransactions.Count == 0)
+                        {
+                            <tr><td colspan="4" class="text-center py-4 text-muted">Chưa ghi nhận biến động thẻ kho nào.</td></tr>
+                        }
+                        @foreach (var tx in recentTransactions)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-bold small text-dark">@tx.Product?.Name</div>
+                                    <div class="text-muted" style="font-size: 0.725rem;">Mã SP: @tx.Product?.ProductCode</div>
+                                </td>
+                                <td>
+                                    @if (tx.Type == "IMPORT")
+                                    {
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">NHẬP KHO</span>
+                                    }
+                                    else if (tx.Type == "SALE")
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">XUẤT BÁN</span>
+                                    }
+                                    else if (tx.Type == "RETURN")
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">TRẢ HÀNG</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">ĐIỀU CHỈNH</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <span class="fw-bold @(tx.QuantityDelta > 0 ? "text-success" : "text-danger") fs-6">
+                                        @(tx.QuantityDelta > 0 ? "+" + tx.QuantityDelta : tx.QuantityDelta)
+                                    </span>
+                                </td>
+                                <td class="text-end pe-4 fw-bold text-dark">@tx.StockAfter</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

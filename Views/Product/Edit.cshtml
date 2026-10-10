@@ -1,0 +1,101 @@
+@model QuanLyKho.Models.Entities.Product
+@{
+    ViewData["Title"] = "Chỉnh Sửa Sản Phẩm: " + Model.Name;
+    var categories = ViewBag.Categories as List<QuanLyKho.Models.Entities.Category> ?? new List<QuanLyKho.Models.Entities.Category>();
+    var units = ViewBag.Units as List<QuanLyKho.Models.Entities.Unit> ?? new List<QuanLyKho.Models.Entities.Unit>();
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-0"><i class="bi bi-pencil-square text-primary me-2"></i>Chỉnh Sửa Sản Phẩm: @Model.ProductCode</h5>
+            </div>
+            <div class="card-body p-4">
+                <form asp-action="Edit" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="ProductId" />
+                    <input type="hidden" asp-for="ProductCode" />
+                    <input type="hidden" asp-for="StockQuantity" />
+
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small" role="alert"></div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Mã sản phẩm</label>
+                            <input class="form-control bg-light" value="@Model.ProductCode" readonly />
+                            <div class="form-text small">Mã sản phẩm cố định, không thể thay đổi.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Barcode" class="form-label fw-semibold small">Mã vạch Barcode</label>
+                            <input asp-for="Barcode" class="form-control" />
+                            <span asp-validation-for="Barcode" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Name" class="form-label fw-semibold small">Tên sản phẩm *</label>
+                            <input asp-for="Name" class="form-control" maxlength="150" required />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="CategoryId" class="form-label fw-semibold small">Danh mục hàng hóa *</label>
+                            <select asp-for="CategoryId" class="form-select" required>
+                                @foreach (var c in categories)
+                                {
+                                    <option value="@c.CategoryId">@c.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="UnitId" class="form-label fw-semibold small">Đơn vị tính *</label>
+                            <select asp-for="UnitId" class="form-select" required>
+                                @foreach (var u in units)
+                                {
+                                    <option value="@u.UnitId">@u.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="PurchasePrice" class="form-label fw-semibold small">Giá nhập hiện hành (VNĐ) *</label>
+                            <input asp-for="PurchasePrice" type="number" step="500" min="0" class="form-control" required />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="SalePrice" class="form-label fw-semibold small">Giá bán niêm yết (VNĐ) *</label>
+                            <input asp-for="SalePrice" type="number" step="500" min="0" class="form-control" required />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Tồn kho hiện tại</label>
+                            <input class="form-control bg-light fw-bold text-primary" value="@Model.StockQuantity" readonly />
+                            <div class="form-text small">Tồn kho chỉ thay đổi qua Nhập hàng, Bán hàng hoặc Kiểm kê kho.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="MinimumStock" class="form-label fw-semibold small">Ngưỡng tồn tối thiểu cảnh báo *</label>
+                            <input asp-for="MinimumStock" type="number" min="0" class="form-control" required />
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" asp-for="IsActive" />
+                                <label class="form-check-label small" asp-for="IsActive">Kích hoạt kinh doanh</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a asp-action="Index" class="btn btn-light">Hủy bỏ</a>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i> Cập Nhật Thông Tin</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

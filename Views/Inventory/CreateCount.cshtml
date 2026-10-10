@@ -1,0 +1,162 @@
+@model List<QuanLyKho.Models.Entities.Product>
+@{
+    ViewData["Title"] = "Tạo Phiếu Kiểm Kê";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-clipboard-plus text-primary me-2"></i>Tạo Phiếu Kiểm Kê Mới</h4>
+        <p class="text-muted small mb-0">Nhập số lượng đếm thực tế để đối soát và chuẩn bị điều chỉnh tồn kho (F.7.1, BR.08)</p>
+    </div>
+    <a asp-action="Counts" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Quay lại
+    </a>
+</div>
+
+<form asp-action="CreateCount" method="post" id="countForm">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="itemsJson" id="itemsJson" value="" />
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-8">
+                    <label class="form-label small fw-semibold">Lý do kiểm kê kho *</label>
+                    <input type="text" name="reason" id="countReason" class="form-control" placeholder="Ví dụ: Kiểm kê định kỳ cuối tháng, rà soát thất thoát hàng hóa..." required />
+                </div>
+                <div class="col-md-4 text-end pt-4">
+                    <button type="button" class="btn btn-primary fw-bold" onclick="submitCountForm()">
+                        <i class="bi bi-save me-1"></i> Lưu Phiếu Kiểm Kê
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3">
+            <h6 class="fw-bold mb-0">Nhập Số Lượng Đếm Thực Tế Từng Sản Phẩm</h6>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light small">
+                    <tr>
+                        <th class="ps-3" style="width: 40px;">
+                            <input class="form-check-input" type="checkbox" id="selectAll" checked onchange="toggleSelectAll(this)" />
+                        </th>
+                        <th>Sản Phẩm</th>
+                        <th class="text-center">Tồn Hệ Thống</th>
+                        <th style="width: 180px;" class="text-center">Số Lượng Thực Tế</th>
+                        <th class="text-center pe-3">Chênh Lệch</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model)
+                    {
+                        <tr class="count-row" data-id="@p.ProductId" data-system="@p.StockQuantity">
+                            <td class="ps-3">
+                                <input class="form-check-input item-select" type="checkbox" checked onchange="onItemSelectChange(this)" />
+                            </td>
+                            <td>
+                                <div class="fw-bold small">@p.Name</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">Mã: @p.ProductCode &bull; ĐVT: @(p.Unit?.Name ?? "")</div>
+                            </td>
+                            <td class="text-center fw-semibold text-secondary">
+                                @p.StockQuantity
+                            </td>
+                            <td class="text-center">
+                                <input type="number" min="0" class="form-control form-control-sm text-center counted-input" 
+                                       value="@p.StockQuantity" oninput="onCountInput(this)" onchange="onCountInput(this)" />
+                            </td>
+                            <td class="text-center pe-3 fw-bold diff-badge text-muted">
+                                0
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        function onCountInput(input) {
+            var row = input.closest('.count-row');
+            var systemQty = parseInt(row.getAttribute('data-system'));
+            var countedQty = parseInt(input.value) || 0;
+            var diff = countedQty - systemQty;
+
+            var badge = row.querySelector('.diff-badge');
+            if (diff > 0) {
+                badge.className = 'text-center pe-3 fw-bold diff-badge text-success';
+                badge.innerText = '+' + diff;
+            } else if (diff < 0) {
+                badge.className = 'text-center pe-3 fw-bold diff-badge text-danger';
+                badge.innerText = diff;
+            } else {
+                badge.className = 'text-center pe-3 fw-bold diff-badge text-muted';
+                badge.innerText = '0';
+            }
+
+            if (Math.abs(diff) >= 10) {
+                badge.innerHTML += ' <span class="badge bg-warning text-dark small" style="font-size: 0.65rem;">Cần duyệt Admin</span>';
+            }
+        }
+
+        function toggleSelectAll(master) {
+            document.querySelectorAll('.item-select').forEach(chk => {
+                chk.checked = master.checked;
+            });
+        }
+
+        function onItemSelectChange(chk) {
+            var row = chk.closest('.count-row');
+            var input = row.querySelector('.counted-input');
+            input.disabled = !chk.checked;
+        }
+
+        function submitCountForm() {
+            var reason = document.getElementById('countReason').value.trim();
+            if (!reason) {
+                alert('Vui lòng nhập lý do kiểm kê kho.');
+                return;
+            }
+
+            var items = [];
+            var hasLargeDiff = false;
+
+            document.querySelectorAll('.count-row').forEach(row => {
+                var chk = row.querySelector('.item-select');
+                if (chk && chk.checked) {
+                    var prodId = parseInt(row.getAttribute('data-id'));
+                    var systemQty = parseInt(row.getAttribute('data-system'));
+                    var input = row.querySelector('.counted-input');
+                    var countedQty = parseInt(input.value) || 0;
+                    var diff = countedQty - systemQty;
+
+                    if (Math.abs(diff) >= 10) {
+                        hasLargeDiff = true;
+                    }
+
+                    items.push({
+                        productId: prodId,
+                        countedQuantity: countedQty
+                    });
+                }
+            });
+
+            if (items.length === 0) {
+                alert('Vui lòng chọn ít nhất một sản phẩm để kiểm kê.');
+                return;
+            }
+
+            if (hasLargeDiff) {
+                alert('Lưu ý: Có sản phẩm có chênh lệch tồn lớn (|diff| >= 10). Phiếu kiểm kê này sẽ yêu cầu tài khoản Admin phê duyệt mới được điều chỉnh (BR.08).');
+            }
+
+            document.getElementById('itemsJson').value = JSON.stringify(items);
+            document.getElementById('countForm').submit();
+        }
+    </script>
+}

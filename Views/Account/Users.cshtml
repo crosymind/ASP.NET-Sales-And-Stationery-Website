@@ -1,0 +1,142 @@
+@model List<QuanLyKho.Models.Entities.User>
+@{
+    ViewData["Title"] = "Quản lý Tài khoản & Phân quyền";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-people-fill text-primary me-2"></i>Quản lý Tài khoản</h4>
+        <p class="text-muted small mb-0">Quản lý người dùng và phân quyền vai trò (Admin, Kho, Bán hàng) - F.1.2</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#userModal" onclick="openCreateUserModal()">
+        <i class="bi bi-person-plus-fill me-1"></i> Thêm Tài Khoản
+    </button>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">ID</th>
+                    <th>Tên đăng nhập</th>
+                    <th>Họ và tên</th>
+                    <th>Vai trò (Role)</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày tạo</th>
+                    <th class="text-end pe-3">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in Model)
+                {
+                    <tr>
+                        <td class="ps-3 text-muted">@u.UserId</td>
+                        <td class="fw-semibold">@u.UserName</td>
+                        <td>@u.FullName</td>
+                        <td>
+                            <span class="badge @(u.Role == "Admin" ? "bg-danger" : (u.Role == "Kho" ? "bg-primary" : "bg-success"))">
+                                @u.Role
+                            </span>
+                        </td>
+                        <td>
+                            @if (u.IsActive)
+                            {
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">Đang hoạt động</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Đã khóa</span>
+                            }
+                        </td>
+                        <td class="small text-muted">@u.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td class="text-end pe-3">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="openEditUserModal(@u.UserId, '@u.UserName', '@u.FullName', '@u.Role', @u.IsActive.ToString().ToLower())">
+                                <i class="bi bi-pencil-square"></i> Sửa
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Thêm/Sửa Tài Khoản -->
+<div class="modal fade" id="userModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="SaveUser" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="modalUserId" name="userId" value="" />
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="modalTitle">Thêm Tài Khoản Mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Tên đăng nhập</label>
+                        <input type="text" id="modalUserName" name="username" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" id="modalPassLabel">Mật khẩu</label>
+                        <input type="password" id="modalPassword" name="password" class="form-control" placeholder="Để trống nếu không muốn đổi mật khẩu" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Họ và tên</label>
+                        <input type="text" id="modalFullName" name="fullName" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Vai trò (Role)</label>
+                        <select id="modalRole" name="role" class="form-select" required>
+                            <option value="Admin">Admin (Chủ cửa hàng - Toàn quyền)</option>
+                            <option value="Kho">Kho (Quản lý hàng hóa, nhập kho, kiểm kê)</option>
+                            <option value="BanHang">BanHang (Bán hàng POS, Hóa đơn, Trả hàng)</option>
+                        </select>
+                    </div>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" id="modalIsActive" name="isActive" value="true" checked />
+                        <label class="form-check-label small" for="modalIsActive">Tài khoản hoạt động</label>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i> Lưu thông tin</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openCreateUserModal() {
+            document.getElementById('modalTitle').innerText = 'Thêm Tài Khoản Mới';
+            document.getElementById('modalUserId').value = '';
+            document.getElementById('modalUserName').value = '';
+            document.getElementById('modalUserName').readOnly = false;
+            document.getElementById('modalPassword').value = '';
+            document.getElementById('modalPassword').required = true;
+            document.getElementById('modalPassLabel').innerText = 'Mật khẩu (Bắt buộc)';
+            document.getElementById('modalFullName').value = '';
+            document.getElementById('modalRole').value = 'BanHang';
+            document.getElementById('modalIsActive').checked = true;
+        }
+
+        function openEditUserModal(id, username, fullname, role, isActive) {
+            document.getElementById('modalTitle').innerText = 'Chỉnh Sửa Tài Khoản: ' + username;
+            document.getElementById('modalUserId').value = id;
+            document.getElementById('modalUserName').value = username;
+            document.getElementById('modalUserName').readOnly = true;
+            document.getElementById('modalPassword').value = '';
+            document.getElementById('modalPassword').required = false;
+            document.getElementById('modalPassLabel').innerText = 'Mật khẩu mới (Để trống nếu giữ nguyên)';
+            document.getElementById('modalFullName').value = fullname;
+            document.getElementById('modalRole').value = role;
+            document.getElementById('modalIsActive').checked = isActive;
+            
+            var modal = new bootstrap.Modal(document.getElementById('userModal'));
+            modal.show();
+        }
+    </script>
+}

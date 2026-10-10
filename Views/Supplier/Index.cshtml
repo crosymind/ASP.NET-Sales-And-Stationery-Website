@@ -1,0 +1,171 @@
+@model List<QuanLyKho.Models.Entities.Supplier>
+@{
+    ViewData["Title"] = "Quản lý Nhà cung cấp";
+    string? search = ViewBag.Search as string;
+    bool showInactive = ViewBag.ShowInactive ?? false;
+    bool canEdit = User.IsInRole("Admin") || User.IsInRole("Kho");
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-truck text-primary me-2"></i>Nhà Cung Cấp</h4>
+        <p class="text-muted small mb-0">Quản lý đối tác và thông tin nhà cung cấp văn phòng phẩm (F.3.1, BR.10)</p>
+    </div>
+    @if (canEdit)
+    {
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#supplierModal" onclick="openCreateSupplierModal()">
+            <i class="bi bi-plus-circle me-1"></i> Thêm Nhà Cung Cấp
+        </button>
+    }
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control" placeholder="Tìm theo tên hoặc số điện thoại..." value="@search" />
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-check pt-1">
+                    <input class="form-check-input" type="checkbox" name="showInactive" id="showInactive" value="true" @(showInactive ? "checked" : "") onchange="this.form.submit()" />
+                    <label class="form-check-label small" for="showInactive">Bao gồm ngừng hoạt động</label>
+                </div>
+            </div>
+            <div class="col-md-2 text-end">
+                <button type="submit" class="btn btn-secondary w-100"><i class="bi bi-funnel me-1"></i> Lọc</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">ID</th>
+                    <th>Tên Nhà Cung Cấp</th>
+                    <th>Điện thoại</th>
+                    <th>Email</th>
+                    <th>Địa chỉ</th>
+                    <th class="text-center">Trạng thái</th>
+                    @if (canEdit)
+                    {
+                        <th class="text-end pe-3">Thao tác</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Count == 0)
+                {
+                    <tr><td colspan="7" class="text-center py-4 text-muted">Không tìm thấy nhà cung cấp nào.</td></tr>
+                }
+                @foreach (var s in Model)
+                {
+                    <tr>
+                        <td class="ps-3 text-muted">@s.SupplierId</td>
+                        <td class="fw-bold">@s.Name</td>
+                        <td>@(s.Phone ?? "-")</td>
+                        <td class="text-muted small">@(s.Email ?? "-")</td>
+                        <td class="small text-truncate" style="max-width: 250px;">@(s.Address ?? "-")</td>
+                        <td class="text-center">
+                            @if (s.IsActive)
+                            {
+                                <span class="badge bg-success">Đang hoạt động</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Ngừng hoạt động</span>
+                            }
+                        </td>
+                        @if (canEdit)
+                        {
+                            <td class="text-end pe-3">
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-secondary" onclick="openEditSupplierModal(@s.SupplierId, '@s.Name', '@(s.Phone ?? "")', '@(s.Email ?? "")', '@(s.Address ?? "")', @s.IsActive.ToString().ToLower())">
+                                        <i class="bi bi-pencil"></i> Sửa
+                                    </button>
+                                    <form asp-action="ToggleStatus" asp-route-id="@s.SupplierId" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn đổi trạng thái NCC này? (BR.10)');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-outline-@(s.IsActive ? "danger" : "success")" title="@(s.IsActive ? "Ngừng hoạt động" : "Kích hoạt lại")">
+                                            <i class="bi bi-power"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="supplierModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="Save" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="supId" name="SupplierId" value="0" />
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="supModalTitle">Thêm Nhà Cung Cấp</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Tên nhà cung cấp *</label>
+                        <input type="text" id="supName" name="Name" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Số điện thoại</label>
+                        <input type="text" id="supPhone" name="Phone" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Email</label>
+                        <input type="email" id="supEmail" name="Email" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Địa chỉ</label>
+                        <textarea id="supAddress" name="Address" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="supActive" name="IsActive" value="true" checked />
+                        <label class="form-check-label small" for="supActive">Đang hoạt động</label>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i> Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openCreateSupplierModal() {
+            document.getElementById('supModalTitle').innerText = 'Thêm Nhà Cung Cấp';
+            document.getElementById('supId').value = 0;
+            document.getElementById('supName').value = '';
+            document.getElementById('supPhone').value = '';
+            document.getElementById('supEmail').value = '';
+            document.getElementById('supAddress').value = '';
+            document.getElementById('supActive').checked = true;
+        }
+        function openEditSupplierModal(id, name, phone, email, address, active) {
+            document.getElementById('supModalTitle').innerText = 'Sửa Nhà Cung Cấp';
+            document.getElementById('supId').value = id;
+            document.getElementById('supName').value = name;
+            document.getElementById('supPhone').value = phone;
+            document.getElementById('supEmail').value = email;
+            document.getElementById('supAddress').value = address;
+            document.getElementById('supActive').checked = active;
+            var modal = new bootstrap.Modal(document.getElementById('supplierModal'));
+            modal.show();
+        }
+    </script>
+}

@@ -1,0 +1,109 @@
+@model List<QuanLyKho.Models.Entities.Category>
+@{
+    ViewData["Title"] = "Quản lý Danh mục";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-tags text-primary me-2"></i>Danh Mục Hàng Hóa</h4>
+        <p class="text-muted small mb-0">Quản lý các nhóm sản phẩm văn phòng phẩm (F.2.4)</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#categoryModal" onclick="openCreateCategoryModal()">
+        <i class="bi bi-plus-circle me-1"></i> Thêm Danh Mục
+    </button>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">ID</th>
+                    <th>Tên Danh Mục</th>
+                    <th>Mô tả</th>
+                    <th class="text-center">Trạng thái</th>
+                    <th class="text-end pe-3">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in Model)
+                {
+                    <tr>
+                        <td class="ps-3 text-muted">@c.CategoryId</td>
+                        <td class="fw-semibold">@c.Name</td>
+                        <td class="text-muted small">@(c.Description ?? "-")</td>
+                        <td class="text-center">
+                            @if (c.IsActive)
+                            {
+                                <span class="badge bg-success">Đang dùng</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Ngừng dùng</span>
+                            }
+                        </td>
+                        <td class="text-end pe-3">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="openEditCategoryModal(@c.CategoryId, '@c.Name', '@(c.Description ?? "")', @c.IsActive.ToString().ToLower())">
+                                <i class="bi bi-pencil"></i> Sửa
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="categoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="SaveCategory" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="catId" name="CategoryId" value="0" />
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="catModalTitle">Thêm Danh Mục</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Tên danh mục *</label>
+                        <input type="text" id="catName" name="Name" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Mô tả</label>
+                        <textarea id="catDesc" name="Description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="catActive" name="IsActive" value="true" checked />
+                        <label class="form-check-label small" for="catActive">Đang hoạt động</label>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i> Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openCreateCategoryModal() {
+            document.getElementById('catModalTitle').innerText = 'Thêm Danh Mục';
+            document.getElementById('catId').value = 0;
+            document.getElementById('catName').value = '';
+            document.getElementById('catDesc').value = '';
+            document.getElementById('catActive').checked = true;
+        }
+        function openEditCategoryModal(id, name, desc, active) {
+            document.getElementById('catModalTitle').innerText = 'Sửa Danh Mục';
+            document.getElementById('catId').value = id;
+            document.getElementById('catName').value = name;
+            document.getElementById('catDesc').value = desc;
+            document.getElementById('catActive').checked = active;
+            var modal = new bootstrap.Modal(document.getElementById('categoryModal'));
+            modal.show();
+        }
+    </script>
+}

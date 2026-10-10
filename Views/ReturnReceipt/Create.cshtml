@@ -1,0 +1,222 @@
+@{
+    ViewData["Title"] = "Lập Phiếu Trả Hàng";
+    var invoice = ViewBag.Invoice as QuanLyKho.Models.Entities.Invoice;
+    var returnedMap = ViewBag.ReturnedMap as Dictionary<int, int> ?? new Dictionary<int, int>();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-arrow-counterclockwise text-primary me-2"></i>Lập Phiếu Trả Hàng</h4>
+        <p class="text-muted small mb-0">Xử lý nhận lại hàng khách trả theo hóa đơn gốc (F.6.1, F.6.2, BR.14, BR.15)</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Danh sách phiếu trả
+    </a>
+</div>
+
+@if (ViewBag.Error != null)
+{
+    <div class="alert alert-danger py-2 small mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>@ViewBag.Error
+    </div>
+}
+
+<!-- Search Invoice Box if not chosen -->
+@if (invoice == null)
+{
+    <div class="card border-0 shadow-sm col-md-6 mb-4">
+        <div class="card-header bg-white py-3">
+            <h6 class="fw-bold mb-0">Tìm Kiếm Hóa Đơn Gốc</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="d-flex gap-2">
+                <input type="text" name="searchCode" class="form-control" placeholder="Nhập mã hóa đơn gốc (Ví dụ: HD-20261010-ABCD)..." required />
+                <button type="submit" class="btn btn-primary fw-semibold"><i class="bi bi-search me-1"></i> Tìm</button>
+            </form>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Form Process Return -->
+    <form asp-action="Create" method="post" id="returnForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="invoiceId" value="@invoice.InvoiceId" />
+        <input type="hidden" name="itemsJson" id="itemsJson" value="" />
+
+        <div class="row g-4">
+            <!-- Left Info Panel -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="fw-bold mb-0">Thông Tin Hóa Đơn Gốc</h6>
+                    </div>
+                    <div class="card-body small">
+                        <div class="mb-2"><span class="text-muted">Mã hóa đơn:</span> <strong class="text-primary">@invoice.InvoiceCode</strong></div>
+                        <div class="mb-2"><span class="text-muted">Ngày mua:</span> <strong>@invoice.CreatedAt.ToString("dd/MM/yyyy HH:mm")</strong></div>
+                        <div class="mb-2"><span class="text-muted">Khách hàng:</span> <strong>@(invoice.CustomerName ?? "Khách lẻ")</strong></div>
+                        <div class="mb-2"><span class="text-muted">Tổng tiền mua ban đầu:</span> <strong>@invoice.TotalAmount.ToString("N0") đ</strong></div>
+                        <a asp-action="Create" class="btn btn-sm btn-link p-0 text-decoration-none">&larr; Chọn hóa đơn khác</a>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="fw-bold mb-0">Lý Do Trả Hàng *</h6>
+                    </div>
+                    <div class="card-body">
+                        <textarea name="reason" id="returnReason" class="form-control" rows="3" placeholder="Sản phẩm lỗi kỹ thuật, khách đổi ý, sai quy cách..." required></textarea>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm bg-warning-subtle border-warning">
+                    <div class="card-body p-4">
+                        <div class="small text-uppercase fw-semibold text-warning-emphasis">Tổng tiền hoàn trả khách</div>
+                        <h2 class="fw-bold mt-2 mb-3 text-danger" id="totalRefundText">0 đ</h2>
+                        <button type="button" class="btn btn-warning w-100 fw-bold py-2 text-dark shadow" onclick="submitReturnForm()">
+                            <i class="bi bi-check-circle me-1"></i> Hoàn Tất Trả Hàng (Tăng Tồn)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Items Selection -->
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="fw-bold mb-0">Chọn Mặt Hàng & Số Lượng Trả (BR.14)</h6>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead class="table-light small">
+                                <tr>
+                                    <th>Mặt Hàng</th>
+                                    <th class="text-center">Đã Mua</th>
+                                    <th class="text-center">Đã Trả</th>
+                                    <th class="text-center">Còn Được Trả</th>
+                                    <th style="width: 130px;" class="text-center">Số Lượng Trả</th>
+                                    <th class="text-end pe-3">Tiền Hoàn</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var it in invoice.Items)
+                                {
+                                    int alreadyReturned = returnedMap.ContainsKey(it.ItemId) ? returnedMap[it.ItemId] : 0;
+                                    int maxReturnable = it.Quantity - alreadyReturned;
+
+                                    <tr class="item-row" 
+                                        data-item-id="@it.ItemId" 
+                                        data-prod-id="@it.ProductId" 
+                                        data-price="@it.UnitPrice"
+                                        data-max="@maxReturnable">
+                                        <td>
+                                            <div class="fw-bold small">@it.Product?.Name</div>
+                                            <div class="text-muted" style="font-size: 0.75rem;">Mã: @it.Product?.ProductCode &bull; Giá: @it.UnitPrice.ToString("N0") đ</div>
+                                        </td>
+                                        <td class="text-center small">@it.Quantity</td>
+                                        <td class="text-center small text-muted">@alreadyReturned</td>
+                                        <td class="text-center small fw-bold @(maxReturnable > 0 ? "text-success" : "text-danger")">
+                                            @maxReturnable
+                                        </td>
+                                        <td class="text-center">
+                                            @if (maxReturnable > 0)
+                                            {
+                                                <input type="number" class="form-control form-control-sm text-center return-qty-input" 
+                                                       min="0" max="@maxReturnable" value="0" 
+                                                       oninput="onReturnQtyChange(this)" onchange="onReturnQtyChange(this)" />
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary small">Hết hạn mức</span>
+                                            }
+                                        </td>
+                                        <td class="text-end pe-3 fw-bold line-refund-text text-danger">0 đ</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    @section Scripts {
+        <script>
+            function onReturnQtyChange(input) {
+                var row = input.closest('.item-row');
+                var max = parseInt(row.getAttribute('data-max'));
+                var val = parseInt(input.value) || 0;
+
+                if (val < 0) {
+                    val = 0;
+                    input.value = 0;
+                } else if (val > max) {
+                    alert('Số lượng trả không thể vượt quá ' + max + ' (BR.14)!');
+                    val = max;
+                    input.value = max;
+                }
+
+                var price = parseFloat(row.getAttribute('data-price')) || 0;
+                var lineRefund = val * price;
+                row.querySelector('.line-refund-text').innerText = lineRefund.toLocaleString('vi-VN') + ' đ';
+
+                calculateTotalRefund();
+            }
+
+            function calculateTotalRefund() {
+                var rows = document.querySelectorAll('.item-row');
+                var total = 0;
+                rows.forEach(r => {
+                    var input = r.querySelector('.return-qty-input');
+                    if (input) {
+                        var qty = parseInt(input.value) || 0;
+                        var price = parseFloat(r.getAttribute('data-price')) || 0;
+                        total += qty * price;
+                    }
+                });
+                document.getElementById('totalRefundText').innerText = total.toLocaleString('vi-VN') + ' đ';
+            }
+
+            function submitReturnForm() {
+                var reason = document.getElementById('returnReason').value.trim();
+                if (!reason) {
+                    alert('Vui lòng nhập lý do trả hàng.');
+                    return;
+                }
+
+                var rows = document.querySelectorAll('.item-row');
+                var items = [];
+                rows.forEach(r => {
+                    var input = r.querySelector('.return-qty-input');
+                    if (input) {
+                        var qty = parseInt(input.value) || 0;
+                        if (qty > 0) {
+                            var itemId = parseInt(r.getAttribute('data-item-id'));
+                            var prodId = parseInt(r.getAttribute('data-prod-id'));
+                            var price = parseFloat(r.getAttribute('data-price')) || 0;
+                            items.Add ? null : items.push({
+                                invoiceItemId: itemId,
+                                productId: prodId,
+                                quantity: qty,
+                                refundAmount: qty * price
+                            });
+                        }
+                    }
+                });
+
+                if (items.length === 0) {
+                    alert('Vui lòng nhập số lượng trả cho ít nhất một sản phẩm.');
+                    return;
+                }
+
+                if (!confirm('Xác nhận hoàn tất trả hàng? Tồn kho sẽ được tăng lại và ghi nhận giảm doanh thu thuần (BR.15, BR.17).')) {
+                    return;
+                }
+
+                document.getElementById('itemsJson').value = JSON.stringify(items);
+                document.getElementById('returnForm').submit();
+            }
+        </script>
+    }
+}

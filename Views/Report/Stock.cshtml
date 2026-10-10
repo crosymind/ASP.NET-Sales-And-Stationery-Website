@@ -1,0 +1,108 @@
+@model QuanLyKho.Services.Interfaces.StockReportDto
+@{
+    ViewData["Title"] = "Báo Cáo Tồn Kho & Định Giá";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-pie-chart-fill text-info me-2"></i>Báo Cáo Tồn Kho & Giá Trị Tồn</h4>
+        <p class="text-muted small mb-0">Ước tính giá trị tồn kho = Tồn hiện tại &times; Giá nhập hiện hành (F.8.2, BR.19)</p>
+    </div>
+    <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+        <i class="bi bi-printer me-1"></i> In Báo Cáo
+    </button>
+</div>
+
+<!-- Metrics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="small text-muted text-uppercase fw-semibold">Tổng số mặt hàng</div>
+                <h3 class="fw-bold text-dark mt-2 mb-0">@Model.TotalProductCount</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="small text-muted text-uppercase fw-semibold">Tổng số lượng tồn</div>
+                <h3 class="fw-bold text-primary mt-2 mb-0">@Model.TotalStockQuantity.ToString("N0")</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100 bg-info-subtle text-info border-info">
+            <div class="card-body">
+                <div class="small text-uppercase fw-semibold">Tổng giá trị tồn ước tính</div>
+                <h3 class="fw-bold mt-2 mb-0">@Model.EstimatedTotalValue.ToString("N0") đ</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100 bg-danger-subtle text-danger border-danger">
+            <div class="card-body">
+                <div class="small text-uppercase fw-semibold">Mặt hàng chạm ngưỡng thấp</div>
+                <h3 class="fw-bold mt-2 mb-0">@Model.LowStockProductCount</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3">
+        <h6 class="fw-bold mb-0">Chi Tiết Tồn Kho Từng Sản Phẩm</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Mã SP</th>
+                    <th>Tên Sản Phẩm</th>
+                    <th>Danh mục</th>
+                    <th>ĐVT</th>
+                    <th class="text-end">Giá nhập</th>
+                    <th class="text-center">Tồn kho</th>
+                    <th class="text-center">Ngưỡng tối thiểu</th>
+                    <th class="text-end pe-3">Giá trị tồn ước tính (đ)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Model.Products)
+                {
+                    decimal lineValue = p.StockQuantity * p.PurchasePrice;
+                    bool isLow = p.StockQuantity <= p.MinimumStock;
+                    <tr>
+                        <td class="ps-3 fw-semibold text-primary">@p.ProductCode</td>
+                        <td class="fw-bold">@p.Name</td>
+                        <td><span class="badge bg-light text-dark border">@p.Category?.Name</span></td>
+                        <td>@(p.Unit?.Name ?? "-")</td>
+                        <td class="text-end">@p.PurchasePrice.ToString("N0") đ</td>
+                        <td class="text-center">
+                            @if (isLow)
+                            {
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold">
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>@p.StockQuantity
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                    @p.StockQuantity
+                                </span>
+                            }
+                        </td>
+                        <td class="text-center text-muted small">@p.MinimumStock</td>
+                        <td class="text-end pe-3 fw-bold text-dark">@lineValue.ToString("N0") đ</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot class="table-light">
+                <tr>
+                    <th colspan="7" class="text-end ps-3 fs-6">Tổng giá trị toàn bộ kho:</th>
+                    <th class="text-end pe-3 fs-5 text-primary fw-bold">@Model.EstimatedTotalValue.ToString("N0") đ</th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>

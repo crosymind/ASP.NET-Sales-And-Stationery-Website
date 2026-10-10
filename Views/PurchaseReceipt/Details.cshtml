@@ -1,0 +1,134 @@
+@model QuanLyKho.Models.Entities.PurchaseReceipt
+@{
+    ViewData["Title"] = "Chi Tiết Phiếu Nhập: " + Model.ReceiptCode;
+    bool canAction = (User.IsInRole("Admin") || User.IsInRole("Kho")) && Model.Status == "Draft";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2">
+            <h4 class="fw-bold mb-0">Phiếu Nhập: @Model.ReceiptCode</h4>
+            @if (Model.Status == "Completed")
+            {
+                <span class="badge bg-success fs-6"><i class="bi bi-check-circle me-1"></i>Hoàn tất</span>
+            }
+            else if (Model.Status == "Draft")
+            {
+                <span class="badge bg-warning text-dark fs-6"><i class="bi bi-pencil me-1"></i>Nháp</span>
+            }
+            else
+            {
+                <span class="badge bg-secondary fs-6"><i class="bi bi-x-circle me-1"></i>Đã hủy</span>
+            }
+        </div>
+        <p class="text-muted small mb-0 mt-1">Chi tiết hàng hóa nhập kho từ nhà cung cấp (F.4.2, BR.05)</p>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Quay lại
+        </a>
+        @if (canAction)
+        {
+            <form asp-action="Cancel" asp-route-id="@Model.ReceiptId" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn hủy phiếu nhập nháp này?');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-danger">
+                    <i class="bi bi-x-lg me-1"></i> Hủy Phiếu
+                </button>
+            </form>
+
+            <form asp-action="Complete" asp-route-id="@Model.ReceiptId" method="post" class="d-inline" onsubmit="return confirm('Xác nhận HOÀN TẤT phiếu nhập? Tồn kho các sản phẩm sẽ được tăng ngay lập tức và tạo giao dịch kho IMPORT.');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-success fw-bold shadow-sm">
+                    <i class="bi bi-check2-circle me-1"></i> Hoàn Tất Phiếu Nhập
+                </button>
+            </form>
+        }
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="fw-bold text-primary mb-3">Thông Tin Nhà Cung Cấp</h6>
+                <div class="row g-2 small">
+                    <div class="col-4 text-muted">Nhà cung cấp:</div>
+                    <div class="col-8 fw-semibold">@Model.Supplier?.Name</div>
+
+                    <div class="col-4 text-muted">Số điện thoại:</div>
+                    <div class="col-8">@(Model.Supplier?.Phone ?? "-")</div>
+
+                    <div class="col-4 text-muted">Email:</div>
+                    <div class="col-8">@(Model.Supplier?.Email ?? "-")</div>
+
+                    <div class="col-4 text-muted">Địa chỉ:</div>
+                    <div class="col-8">@(Model.Supplier?.Address ?? "-")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="fw-bold text-primary mb-3">Thông Tin Chứng Từ</h6>
+                <div class="row g-2 small">
+                    <div class="col-4 text-muted">Người lập:</div>
+                    <div class="col-8 fw-semibold">@(Model.CreatedBy?.FullName ?? Model.CreatedBy?.UserName)</div>
+
+                    <div class="col-4 text-muted">Thời điểm lập:</div>
+                    <div class="col-8">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")</div>
+
+                    <div class="col-4 text-muted">Thời điểm hoàn tất:</div>
+                    <div class="col-8">@(Model.CompletedAt?.ToString("dd/MM/yyyy HH:mm:ss") ?? "Chưa hoàn tất")</div>
+
+                    <div class="col-4 text-muted">Ghi chú:</div>
+                    <div class="col-8 text-secondary">@(Model.Notes ?? "Không có ghi chú")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3">
+        <h6 class="fw-bold mb-0">Danh Sách Mặt Hàng Nhập</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">STT</th>
+                    <th>Mã SP</th>
+                    <th>Tên Sản Phẩm</th>
+                    <th>ĐVT</th>
+                    <th class="text-center">Số lượng nhập</th>
+                    <th class="text-end">Đơn giá nhập</th>
+                    <th class="text-end pe-3">Thành tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{ int idx = 1; }
+                @foreach (var it in Model.Items)
+                {
+                    <tr>
+                        <td class="ps-3 text-muted">@(idx++)</td>
+                        <td class="fw-semibold text-primary">@it.Product?.ProductCode</td>
+                        <td class="fw-bold">@it.Product?.Name</td>
+                        <td>@(it.Product?.Unit?.Name ?? "-")</td>
+                        <td class="text-center fw-bold text-success">+@it.Quantity</td>
+                        <td class="text-end">@it.UnitCost.ToString("N0") đ</td>
+                        <td class="text-end pe-3 fw-bold">@it.Subtotal.ToString("N0") đ</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot class="table-light">
+                <tr>
+                    <th colspan="6" class="text-end ps-3 fs-6">Tổng cộng tiền hàng:</th>
+                    <th class="text-end pe-3 fs-5 text-primary fw-bold">@Model.TotalAmount.ToString("N0") đ</th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>

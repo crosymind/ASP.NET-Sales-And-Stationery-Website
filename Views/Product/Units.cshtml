@@ -1,0 +1,101 @@
+@model List<QuanLyKho.Models.Entities.Unit>
+@{
+    ViewData["Title"] = "Quản lý Đơn vị tính";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-rulers text-primary me-2"></i>Đơn Vị Tính</h4>
+        <p class="text-muted small mb-0">Quản lý các đơn vị đo lường (Cây, Quyển, Ram, Cái, Hộp, Cuộn...) - F.2.5</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#unitModal" onclick="openCreateUnitModal()">
+        <i class="bi bi-plus-circle me-1"></i> Thêm Đơn Vị Tính
+    </button>
+</div>
+
+<div class="card border-0 shadow-sm col-md-8">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">ID</th>
+                    <th>Tên Đơn Vị Tính</th>
+                    <th class="text-center">Trạng thái</th>
+                    <th class="text-end pe-3">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in Model)
+                {
+                    <tr>
+                        <td class="ps-3 text-muted">@u.UnitId</td>
+                        <td class="fw-bold">@u.Name</td>
+                        <td class="text-center">
+                            @if (u.IsActive)
+                            {
+                                <span class="badge bg-success">Đang dùng</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Ngừng dùng</span>
+                            }
+                        </td>
+                        <td class="text-end pe-3">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="openEditUnitModal(@u.UnitId, '@u.Name', @u.IsActive.ToString().ToLower())">
+                                <i class="bi bi-pencil"></i> Sửa
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="unitModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="SaveUnit" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="unitId" name="UnitId" value="0" />
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="unitModalTitle">Thêm Đơn Vị Tính</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Tên đơn vị tính *</label>
+                        <input type="text" id="unitName" name="Name" class="form-control" placeholder="Ví dụ: Quyển, Ram, Hộp..." required />
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="unitActive" name="IsActive" value="true" checked />
+                        <label class="form-check-label small" for="unitActive">Đang hoạt động</label>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i> Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openCreateUnitModal() {
+            document.getElementById('unitModalTitle').innerText = 'Thêm Đơn Vị Tính';
+            document.getElementById('unitId').value = 0;
+            document.getElementById('unitName').value = '';
+            document.getElementById('unitActive').checked = true;
+        }
+        function openEditUnitModal(id, name, active) {
+            document.getElementById('unitModalTitle').innerText = 'Sửa Đơn Vị Tính';
+            document.getElementById('unitId').value = id;
+            document.getElementById('unitName').value = name;
+            document.getElementById('unitActive').checked = active;
+            var modal = new bootstrap.Modal(document.getElementById('unitModal'));
+            modal.show();
+        }
+    </script>
+}

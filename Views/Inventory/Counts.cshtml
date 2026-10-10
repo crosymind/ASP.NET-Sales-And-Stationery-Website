@@ -1,0 +1,82 @@
+@model List<QuanLyKho.Models.Entities.StockCount>
+@{
+    ViewData["Title"] = "Kiểm kê & Điều chỉnh Tồn kho";
+    bool canCreate = User.IsInRole("Admin") || User.IsInRole("Kho");
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-clipboard-check text-primary me-2"></i>Phiếu Kiểm Kê Tồn Kho</h4>
+        <p class="text-muted small mb-0">Đối chiếu tồn hệ thống với số lượng thực tế tại quầy và kho (F.7.1, F.7.2, BR.08)</p>
+    </div>
+    @if (canCreate)
+    {
+        <a asp-action="CreateCount" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i> Tạo Phiếu Kiểm Kê Mới
+        </a>
+    }
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Mã Phiếu</th>
+                    <th>Lý do kiểm kê</th>
+                    <th>Thời gian lập</th>
+                    <th>Người lập</th>
+                    <th>Người duyệt</th>
+                    <th class="text-center">Duyệt Admin (BR.08)</th>
+                    <th class="text-center">Trạng thái</th>
+                    <th class="text-end pe-3">Chi tiết</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Count == 0)
+                {
+                    <tr><td colspan="8" class="text-center py-4 text-muted">Chưa có phiếu kiểm kê nào.</td></tr>
+                }
+                @foreach (var c in Model)
+                {
+                    <tr>
+                        <td class="ps-3 fw-bold text-primary">
+                            <a asp-action="DetailsCount" asp-route-id="@c.CountId" class="text-decoration-none">
+                                @c.CountCode
+                            </a>
+                        </td>
+                        <td class="small fw-semibold">@c.Reason</td>
+                        <td class="small text-muted">@c.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td class="small">@(c.CreatedBy?.FullName ?? c.CreatedBy?.UserName)</td>
+                        <td class="small">@(c.ApprovedBy != null ? (c.ApprovedBy.FullName ?? c.ApprovedBy.UserName) : "-")</td>
+                        <td class="text-center">
+                            @if (c.RequiresApproval)
+                            {
+                                <span class="badge bg-warning text-dark border border-warning">Yêu cầu Admin duyệt (|diff| &ge; 10)</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-light text-muted border">Không</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            @if (c.Status == "Completed")
+                            {
+                                <span class="badge bg-success">Đã hoàn tất</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">Bản nháp</span>
+                            }
+                        </td>
+                        <td class="text-end pe-3">
+                            <a asp-action="DetailsCount" asp-route-id="@c.CountId" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> Xem
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

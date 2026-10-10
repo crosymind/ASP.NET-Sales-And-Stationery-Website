@@ -1,0 +1,131 @@
+@model QuanLyKho.Models.Entities.StockCount
+@{
+    ViewData["Title"] = "Chi Tiết Phiếu Kiểm Kê: " + Model.CountCode;
+    bool canComplete = Model.Status == "Draft" && (User.IsInRole("Admin") || (!Model.RequiresApproval && User.IsInRole("Kho")));
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2">
+            <h4 class="fw-bold mb-0">Phiếu Kiểm Kê: @Model.CountCode</h4>
+            <span class="badge @(Model.Status == "Completed" ? "bg-success" : "bg-warning text-dark") fs-6">
+                @Model.Status
+            </span>
+            @if (Model.RequiresApproval)
+            {
+                <span class="badge bg-danger fs-6"><i class="bi bi-shield-exclamation me-1"></i>Cần Admin Duyệt (BR.08)</span>
+            }
+        </div>
+        <p class="text-muted small mb-0 mt-1">Đối soát chênh lệch và cập nhật số lượng tồn thực tế (F.7.2)</p>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a asp-action="Counts" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Danh sách
+        </a>
+        @if (canComplete)
+        {
+            <form asp-action="CompleteCount" asp-route-id="@Model.CountId" method="post" class="d-inline" onsubmit="return confirm('Xác nhận HOÀN TẤT phiếu kiểm kê? Tồn kho hệ thống sẽ được điều chỉnh đồng bộ sang số lượng thực tế và tạo giao dịch ADJUSTMENT.');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-success fw-bold shadow-sm">
+                    <i class="bi bi-check2-circle me-1"></i> Hoàn Tất & Điều Chỉnh Tồn Kho
+                </button>
+            </form>
+        }
+        else if (Model.Status == "Draft" && Model.RequiresApproval && !User.IsInRole("Admin"))
+        {
+            <button class="btn btn-secondary" disabled title="Chênh lệch lớn cần tài khoản Admin phê duyệt (BR.08)">
+                <i class="bi bi-lock me-1"></i> Chờ Admin Duyệt
+            </button>
+        }
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="fw-bold text-primary mb-3">Thông Tin Kiểm Kê</h6>
+                <div class="row g-2 small">
+                    <div class="col-4 text-muted">Lý do kiểm kê:</div>
+                    <div class="col-8 fw-semibold">@Model.Reason</div>
+
+                    <div class="col-4 text-muted">Người lập:</div>
+                    <div class="col-8">@(Model.CreatedBy?.FullName ?? Model.CreatedBy?.UserName)</div>
+
+                    <div class="col-4 text-muted">Thời điểm lập:</div>
+                    <div class="col-8">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="fw-bold text-primary mb-3">Thông Tin Phê Duyệt & Hoàn Tất</h6>
+                <div class="row g-2 small">
+                    <div class="col-4 text-muted">Cần Admin duyệt:</div>
+                    <div class="col-8">
+                        @if (Model.RequiresApproval)
+                        {
+                            <span class="badge bg-danger">Có (Chênh lệch &ge; 10 sản phẩm)</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Không (Chênh lệch nhỏ)</span>
+                        }
+                    </div>
+
+                    <div class="col-4 text-muted">Người duyệt:</div>
+                    <div class="col-8 fw-semibold">@(Model.ApprovedBy != null ? (Model.ApprovedBy.FullName ?? Model.ApprovedBy.UserName) : "Chưa duyệt")</div>
+
+                    <div class="col-4 text-muted">Thời điểm hoàn tất:</div>
+                    <div class="col-8">@(Model.CompletedAt?.ToString("dd/MM/yyyy HH:mm:ss") ?? "Chưa hoàn tất")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3">
+        <h6 class="fw-bold mb-0">Bảng Đối Chiếu Số Lượng Tồn Thực Tế & Hệ Thống</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">STT</th>
+                    <th>Mã SP</th>
+                    <th>Tên Sản Phẩm</th>
+                    <th>ĐVT</th>
+                    <th class="text-center">Tồn Hệ Thống</th>
+                    <th class="text-center">Số Đếm Thực Tế</th>
+                    <th class="text-center pe-3">Chênh Lệch</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{ int idx = 1; }
+                @foreach (var it in Model.Items)
+                {
+                    <tr>
+                        <td class="ps-3 text-muted">@(idx++)</td>
+                        <td class="fw-semibold text-primary">@it.Product?.ProductCode</td>
+                        <td class="fw-bold">@it.Product?.Name</td>
+                        <td>@(it.Product?.Unit?.Name ?? "-")</td>
+                        <td class="text-center fw-semibold">@it.SystemQuantity</td>
+                        <td class="text-center fw-bold text-dark">@it.CountedQuantity</td>
+                        <td class="text-center pe-3 fw-bold @(it.Difference > 0 ? "text-success" : (it.Difference < 0 ? "text-danger" : "text-muted"))">
+                            @(it.Difference > 0 ? "+" + it.Difference : it.Difference.ToString())
+                            @if (Math.Abs(it.Difference) >= 10)
+                            {
+                                <i class="bi bi-exclamation-circle text-warning ms-1" title="Chênh lệch lớn"></i>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

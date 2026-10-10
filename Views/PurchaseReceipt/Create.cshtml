@@ -1,0 +1,223 @@
+@{
+    ViewData["Title"] = "Lập Phiếu Nhập Kho";
+    var suppliers = ViewBag.Suppliers as List<QuanLyKho.Models.Entities.Supplier> ?? new List<QuanLyKho.Models.Entities.Supplier>();
+    var products = ViewBag.Products as List<QuanLyKho.Models.Entities.Product> ?? new List<QuanLyKho.Models.Entities.Product>();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-box-arrow-in-down text-primary me-2"></i>Lập Phiếu Nhập Kho</h4>
+        <p class="text-muted small mb-0">Tạo phiếu nhập nháp từ nhà cung cấp (F.4.1)</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Danh sách phiếu nhập
+    </a>
+</div>
+
+<form asp-action="Create" method="post" id="receiptForm">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="itemsJson" id="itemsJson" value="" />
+
+    <div class="row g-4">
+        <!-- Supplier & Notes -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <h6 class="fw-bold mb-0">Thông Tin Nhà Cung Cấp</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Nhà cung cấp *</label>
+                        <select name="supplierId" class="form-select" required>
+                            <option value="">-- Chọn nhà cung cấp --</option>
+                            @foreach (var s in suppliers)
+                            {
+                                <option value="@s.SupplierId">@s.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Ghi chú phiếu nhập</label>
+                        <textarea name="notes" class="form-control" rows="3" placeholder="Số hóa đơn đỏ, thông tin giao hàng..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Card -->
+            <div class="card border-0 shadow-sm bg-primary text-white">
+                <div class="card-body p-4">
+                    <div class="small text-uppercase opacity-75 fw-semibold">Tổng tiền thanh toán dự tính</div>
+                    <h2 class="fw-bold mt-2 mb-3" id="grandTotalText">0 đ</h2>
+                    <div class="d-flex justify-content-between small opacity-75 mb-3">
+                        <span>Số lượng mặt hàng:</span>
+                        <strong id="itemCountText">0</strong>
+                    </div>
+                    <button type="button" class="btn btn-light w-100 fw-bold py-2 text-primary shadow" onclick="submitReceiptForm()">
+                        <i class="bi bi-save me-1"></i> Lưu Phiếu Nhập Nháp
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Receipt Items -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                    <h6 class="fw-bold mb-0">Danh Sách Mặt Hàng Nhập Kho</h6>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addItemRow()">
+                        <i class="bi bi-plus-lg me-1"></i> Thêm Mặt Hàng
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0" id="itemsTable">
+                        <thead class="table-light small">
+                            <tr>
+                                <th style="width: 45%;">Sản phẩm</th>
+                                <th style="width: 20%;">Số lượng nhập</th>
+                                <th style="width: 25%;">Đơn giá nhập (đ)</th>
+                                <th class="text-end" style="width: 10%;">Xóa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsBody">
+                            <!-- Rows added via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer bg-white text-center py-3" id="emptyItemsPrompt">
+                    <p class="text-muted small mb-2">Chưa có sản phẩm nào được chọn.</p>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="addItemRow()">
+                        <i class="bi bi-plus-circle me-1"></i> Thêm sản phẩm đầu tiên
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        var productList = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(products.Select(p => new {
+            id = p.ProductId,
+            code = p.ProductCode,
+            name = p.Name,
+            unit = p.Unit?.Name ?? "",
+            cost = p.PurchasePrice
+        })));
+
+        var rows = [];
+
+        function addItemRow() {
+            var rowId = Date.now() + Math.random();
+            rows.push({
+                rowId: rowId,
+                productId: productList.length > 0 ? productList[0].id : 0,
+                quantity: 1,
+                unitCost: productList.length > 0 ? productList[0].cost : 0
+            });
+            renderTable();
+        }
+
+        function removeRow(rowId) {
+            rows = rows.filter(r => r.rowId !== rowId);
+            renderTable();
+        }
+
+        function onProductChange(rowId, selectElem) {
+            var r = rows.find(x => x.rowId === rowId);
+            if (r) {
+                var pId = parseInt(selectElem.value);
+                r.productId = pId;
+                var found = productList.find(x => x.id === pId);
+                if (found) {
+                    r.unitCost = found.cost;
+                }
+                renderTable();
+            }
+        }
+
+        function onQtyChange(rowId, inputElem) {
+            var r = rows.find(x => x.rowId === rowId);
+            if (r) {
+                r.quantity = parseInt(inputElem.value) || 1;
+                updateTotals();
+            }
+        }
+
+        function onCostChange(rowId, inputElem) {
+            var r = rows.find(x => x.rowId === rowId);
+            if (r) {
+                r.unitCost = parseFloat(inputElem.value) || 0;
+                updateTotals();
+            }
+        }
+
+        function updateTotals() {
+            var grandTotal = 0;
+            rows.forEach(r => {
+                grandTotal += r.quantity * r.unitCost;
+            });
+            document.getElementById('grandTotalText').innerText = grandTotal.toLocaleString('vi-VN') + ' đ';
+            document.getElementById('itemCountText').innerText = rows.length;
+        }
+
+        function renderTable() {
+            var tbody = document.getElementById('itemsBody');
+            var prompt = document.getElementById('emptyItemsPrompt');
+
+            if (rows.length === 0) {
+                tbody.innerHTML = '';
+                prompt.style.display = 'block';
+                updateTotals();
+                return;
+            }
+
+            prompt.style.display = 'none';
+            var html = '';
+            rows.forEach(r => {
+                html += `
+                    <tr>
+                        <td>
+                            <select class="form-select form-select-sm" onchange="onProductChange(${r.rowId}, this)">
+                                ${productList.map(p => `
+                                    <option value="${p.id}" ${p.id === r.productId ? 'selected' : ''}>
+                                        [${p.code}] ${p.name} (${p.unit})
+                                    </option>
+                                `).join('')}
+                            </select>
+                        </td>
+                        <td>
+                            <input type="number" min="1" class="form-control form-control-sm" value="${r.quantity}" onchange="onQtyChange(${r.rowId}, this)" oninput="onQtyChange(${r.rowId}, this)" />
+                        </td>
+                        <td>
+                            <input type="number" min="0" step="500" class="form-control form-control-sm" value="${r.unitCost}" onchange="onCostChange(${r.rowId}, this)" oninput="onCostChange(${r.rowId}, this)" />
+                        </td>
+                        <td class="text-end">
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow(${r.rowId})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+            updateTotals();
+        }
+
+        function submitReceiptForm() {
+            if (rows.length === 0) {
+                alert('Vui lòng thêm ít nhất một sản phẩm vào phiếu nhập.');
+                return;
+            }
+            var data = rows.map(r => ({
+                productId: r.productId,
+                quantity: r.quantity,
+                unitCost: r.unitCost
+            }));
+            document.getElementById('itemsJson').value = JSON.stringify(data);
+            document.getElementById('receiptForm').submit();
+        }
+
+        // Initialize with 1 row
+        addItemRow();
+    </script>
+}

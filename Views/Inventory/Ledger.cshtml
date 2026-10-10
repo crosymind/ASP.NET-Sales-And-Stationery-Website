@@ -1,0 +1,103 @@
+@model List<QuanLyKho.Models.Entities.InventoryTransaction>
+@{
+    ViewData["Title"] = "Sổ Giao Dịch Kho";
+    var products = ViewBag.Products as List<QuanLyKho.Models.Entities.Product> ?? new List<QuanLyKho.Models.Entities.Product>();
+    int? currentProduct = ViewBag.ProductId as int?;
+    string? currentType = ViewBag.Type as string;
+    string? from = ViewBag.From as string;
+    string? to = ViewBag.To as string;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-journal-text text-primary me-2"></i>Sổ Giao Dịch Kho (Thẻ Kho)</h4>
+        <p class="text-muted small mb-0">Truy vết đầy đủ mọi biến động xuất, nhập, trả, điều chỉnh tồn (F.7.3, BR.16)</p>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-3">
+                <select name="productId" class="form-select">
+                    <option value="">-- Tất cả sản phẩm --</option>
+                    @foreach (var p in products)
+                    {
+                        <option value="@p.ProductId" selected="@(currentProduct == p.ProductId)">
+                            [@p.ProductCode] @p.Name
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="type" class="form-select">
+                    <option value="">-- Loại giao dịch --</option>
+                    <option value="IMPORT" selected="@(currentType == "IMPORT")">IMPORT (Nhập kho)</option>
+                    <option value="SALE" selected="@(currentType == "SALE")">SALE (Bán hàng)</option>
+                    <option value="RETURN" selected="@(currentType == "RETURN")">RETURN (Trả hàng)</option>
+                    <option value="ADJUSTMENT" selected="@(currentType == "ADJUSTMENT")">ADJUSTMENT (Kiểm kê/Điều chỉnh)</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <input type="date" name="from" class="form-control" value="@from" placeholder="Từ ngày" />
+            </div>
+            <div class="col-md-2">
+                <input type="date" name="to" class="form-control" value="@to" placeholder="Đến ngày" />
+            </div>
+            <div class="col-md-3 text-end">
+                <button type="submit" class="btn btn-secondary w-100"><i class="bi bi-funnel me-1"></i> Lọc biến động</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Thời gian</th>
+                    <th>Sản phẩm</th>
+                    <th>Loại GD</th>
+                    <th class="text-center">Tồn trước</th>
+                    <th class="text-center">Biến động</th>
+                    <th class="text-center">Tồn sau</th>
+                    <th>Chứng từ nguồn</th>
+                    <th class="pe-3">Người thực hiện</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Count == 0)
+                {
+                    <tr><td colspan="8" class="text-center py-4 text-muted">Không có giao dịch kho nào.</td></tr>
+                }
+                @foreach (var tx in Model)
+                {
+                    <tr>
+                        <td class="ps-3 small text-muted">@tx.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                        <td>
+                            <div class="fw-semibold small">@tx.Product?.Name</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">Mã: @tx.Product?.ProductCode &bull; ĐVT: @(tx.Product?.Unit?.Name ?? "-")</div>
+                        </td>
+                        <td>
+                            <span class="badge @(tx.Type == "IMPORT" ? "bg-primary" : (tx.Type == "SALE" ? "bg-success" : (tx.Type == "RETURN" ? "bg-warning text-dark" : "bg-info text-dark")))">
+                                @tx.Type
+                            </span>
+                        </td>
+                        <td class="text-center text-muted small">@tx.StockBefore</td>
+                        <td class="text-center fw-bold @(tx.QuantityDelta > 0 ? "text-success" : "text-danger")">
+                            @(tx.QuantityDelta > 0 ? "+" + tx.QuantityDelta : tx.QuantityDelta.ToString())
+                        </td>
+                        <td class="text-center fw-bold text-dark">@tx.StockAfter</td>
+                        <td>
+                            <span class="badge bg-light text-dark border">
+                                @tx.SourceType: @tx.SourceCode
+                            </span>
+                        </td>
+                        <td class="small pe-3">@(tx.PerformedBy?.FullName ?? tx.PerformedBy?.UserName)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
