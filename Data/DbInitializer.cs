@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using QuanLyKho.Common;
 using QuanLyKho.Models.Entities;
 
@@ -10,7 +12,31 @@ namespace QuanLyKho.Data
     {
         public static void Initialize(QuanLyKhoDbContext context)
         {
-            context.Database.EnsureCreated();
+            try
+            {
+                context.Database.EnsureCreated();
+            }
+            catch
+            {
+                // Ignore if shared hosting restricts master DB check
+            }
+
+            try
+            {
+                _ = context.Users.Any();
+            }
+            catch
+            {
+                try
+                {
+                    var databaseCreator = context.Database.GetService<IRelationalDatabaseCreator>();
+                    databaseCreator.CreateTables();
+                }
+                catch
+                {
+                    // Ignore if tables already exist
+                }
+            }
 
             try
             {

@@ -19,8 +19,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 
 // Database Context
+#if USE_SQLITE
+builder.Services.AddDbContext<QuanLyKhoDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("SqliteConnection") ?? "Data Source=QuanLyKho.db"));
+#else
 builder.Services.AddDbContext<QuanLyKhoDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+#endif
 
 // Authentication & Cookies
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
