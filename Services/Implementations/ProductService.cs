@@ -190,6 +190,7 @@ namespace QuanLyKho.Services.Implementations
             existing.PurchasePrice = product.PurchasePrice;
             existing.SalePrice = product.SalePrice;
             existing.MinimumStock = product.MinimumStock;
+            existing.ImageUrl = product.ImageUrl?.Trim();
             existing.IsActive = product.IsActive;
 
             // Kiểm tra lại cảnh báo tồn thấp theo MinimumStock mới

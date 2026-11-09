@@ -3,10 +3,33 @@
 @{
     ViewData["Title"] = "Dashboard Tổng Quan";
     var rev = ViewBag.TodayRevenue as RevenueReportDto;
+    var yRev = ViewBag.YesterdayRevenue as RevenueReportDto;
     var stock = ViewBag.StockSummary as StockReportDto;
     var alerts = ViewBag.OpenAlerts as List<LowStockAlert> ?? new List<LowStockAlert>();
     var recentInvoices = ViewBag.RecentInvoices as List<Invoice> ?? new List<Invoice>();
     var recentTransactions = ViewBag.RecentTransactions as List<InventoryTransaction> ?? new List<InventoryTransaction>();
+
+    decimal todayNet = rev?.NetRevenue ?? 0;
+    decimal yNet = yRev?.NetRevenue ?? 0;
+    decimal revChange = yNet > 0 ? Math.Round((todayNet - yNet) / yNet * 100, 1) : (todayNet > 0 ? 100 : 0);
+    bool revUp = revChange >= 0;
+
+    string chartRevLabels = ViewBag.ChartRevLabels ?? "[]";
+    string chartRevData = ViewBag.ChartRevData ?? "[]";
+    string chartBestLabels = ViewBag.ChartBestLabels ?? "[]";
+    string chartBestData = ViewBag.ChartBestData ?? "[]";
+    int txImport = (int)(ViewBag.ChartTxImport ?? 0);
+    int txSale = (int)(ViewBag.ChartTxSale ?? 0);
+    int txReturn = (int)(ViewBag.ChartTxReturn ?? 0);
+    int txAdj = (int)(ViewBag.ChartTxAdj ?? 0);
+}
+
+@section Styles {
+<style>
+    .chart-container { position: relative; }
+    .kpi-change-up { color: #10b981; font-size: 0.8rem; font-weight: 600; }
+    .kpi-change-down { color: #ef4444; font-size: 0.8rem; font-weight: 600; }
+</style>
 }
 
 <!-- Welcome & Action Header -->
@@ -55,6 +78,10 @@
                         <h3 class="fw-bold text-dark mt-2 mb-1">@((rev?.NetRevenue ?? 0).ToString("N0")) <small class="fs-6 fw-semibold text-muted">đ</small></h3>
                         <div class="small text-success fw-semibold">
                             <i class="bi bi-check2-circle me-1"></i>@((rev?.TotalInvoiceCount ?? 0)) đơn hoàn tất
+                        </div>
+                        <div class="@(revUp ? "kpi-change-up" : "kpi-change-down") mt-1">
+                            <i class="bi @(revUp ? "bi-arrow-up-short" : "bi-arrow-down-short")"></i>
+                            @(revUp ? "+" : "")@revChange% so với hôm qua
                         </div>
                     </div>
                     <div class="rounded-3 p-3 text-success" style="background-color: #dcfce7;">
@@ -134,6 +161,78 @@
             </div>
             <div class="progress" style="height: 4px;">
                 <div class="progress-bar @(alerts.Count > 0 ? "bg-danger" : "bg-success")" style="width: 100%"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== CHARTS ROW ===== -->
+<div class="row g-4 mb-4">
+    <!-- Biểu đồ doanh thu 7 ngày -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 px-4">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="rounded-2 p-2 bg-success-subtle text-success d-inline-flex">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </span>
+                    <h6 class="fw-bold mb-0 text-dark">Doanh Thu Thuần 7 Ngày Gần Nhất</h6>
+                </div>
+                <a asp-controller="Report" asp-action="Revenue" class="btn btn-sm btn-outline-secondary">
+                    Chi tiết <i class="bi bi-chevron-right ms-1"></i>
+                </a>
+            </div>
+            <div class="card-body p-4">
+                <div class="chart-container" style="height: 230px;">
+                    <canvas id="chartRevenue"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Biểu đồ tỷ lệ nhập/xuất/trả/điều chỉnh -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white d-flex align-items-center gap-2 py-3 px-4">
+                <span class="rounded-2 p-2 bg-info-subtle text-info d-inline-flex">
+                    <i class="bi bi-pie-chart-fill"></i>
+                </span>
+                <h6 class="fw-bold mb-0 text-dark">Giao Dịch Kho (30 Ngày)</h6>
+            </div>
+            <div class="card-body d-flex flex-column align-items-center justify-content-center p-4">
+                <div class="chart-container" style="height: 180px; width: 180px;">
+                    <canvas id="chartTxType"></canvas>
+                </div>
+                <div class="d-flex flex-wrap gap-3 justify-content-center mt-3 small">
+                    <span><span class="badge" style="background:#4f46e5;">&nbsp;</span> Nhập: @txImport</span>
+                    <span><span class="badge" style="background:#10b981;">&nbsp;</span> Bán: @txSale</span>
+                    <span><span class="badge" style="background:#f59e0b;">&nbsp;</span> Trả: @txReturn</span>
+                    <span><span class="badge" style="background:#94a3b8;">&nbsp;</span> Điều chỉnh: @txAdj</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Biểu đồ top 5 bán chạy -->
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 px-4">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="rounded-2 p-2 bg-warning-subtle text-warning d-inline-flex">
+                        <i class="bi bi-trophy-fill"></i>
+                    </span>
+                    <h6 class="fw-bold mb-0 text-dark">Top 5 Sản Phẩm Bán Chạy (30 Ngày)</h6>
+                </div>
+                <a asp-controller="Report" asp-action="BestSellers" class="btn btn-sm btn-outline-secondary">
+                    Xem tất cả <i class="bi bi-chevron-right ms-1"></i>
+                </a>
+            </div>
+            <div class="card-body p-4">
+                <div class="chart-container" style="height: 220px;">
+                    <canvas id="chartBestSellers"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -257,3 +356,95 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+    Chart.defaults.font.family = "'Plus Jakarta Sans', system-ui, sans-serif";
+
+    // ---- Biểu đồ doanh thu 7 ngày (Line Chart) ----
+    const revLabels = @Html.Raw(chartRevLabels);
+    const revData   = @Html.Raw(chartRevData);
+    new Chart(document.getElementById('chartRevenue'), {
+        type: 'line',
+        data: {
+            labels: revLabels,
+            datasets: [{
+                label: 'Doanh thu thuần (đ)',
+                data: revData,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16,185,129,0.1)',
+                borderWidth: 2.5,
+                pointBackgroundColor: '#10b981',
+                pointRadius: 4,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: v => v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v.toLocaleString('vi-VN')
+                    },
+                    grid: { color: '#f1f5f9' }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // ---- Biểu đồ tỷ lệ giao dịch (Doughnut Chart) ----
+    new Chart(document.getElementById('chartTxType'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Nhập kho', 'Xuất bán', 'Trả hàng', 'Điều chỉnh'],
+            datasets: [{
+                data: [@txImport, @txSale, @txReturn, @txAdj],
+                backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#94a3b8'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}` } }
+            }
+        }
+    });
+
+    // ---- Biểu đồ top 5 bán chạy (Bar Chart ngang) ----
+    const bestLabels = @Html.Raw(chartBestLabels);
+    const bestData   = @Html.Raw(chartBestData);
+    new Chart(document.getElementById('chartBestSellers'), {
+        type: 'bar',
+        data: {
+            labels: bestLabels,
+            datasets: [{
+                label: 'Số lượng bán ròng',
+                data: bestData,
+                backgroundColor: ['#4f46e5','#6366f1','#818cf8','#a5b4fc','#c7d2fe'],
+                borderRadius: 8,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { stepSize: 1 } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+</script>
+}

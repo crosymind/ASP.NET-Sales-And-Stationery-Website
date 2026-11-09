@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using QuanLyKho.Data;
+using QuanLyKho.Hubs;
 using QuanLyKho.Models.Entities;
 
 namespace QuanLyKho.Patterns.Observer
@@ -24,6 +26,13 @@ namespace QuanLyKho.Patterns.Observer
 
     public class LowStockObserver : IStockChangedObserver
     {
+        private readonly IHubContext<NotificationHub> _hub;
+
+        public LowStockObserver(IHubContext<NotificationHub> hub)
+        {
+            _hub = hub;
+        }
+
         public async Task OnStockChangedAsync(StockChangedEvent e, QuanLyKhoDbContext context)
         {
             var product = await context.Products.FindAsync(e.ProductId);
@@ -45,6 +54,15 @@ namespace QuanLyKho.Patterns.Observer
                         MinimumStock = product.MinimumStock,
                         OpenedAt = DateTime.UtcNow
                     });
+
+                    // 🔔 Push real-time thông báo tồn thấp cho tất cả client
+                    await _hub.Clients.All.SendAsync("LowStockAlert", new
+                    {
+                        productId   = product.ProductId,
+                        productName = product.Name,
+                        currentStock = product.StockQuantity,
+                        minimumStock = product.MinimumStock
+                    });
                 }
                 else
                 {
@@ -58,6 +76,14 @@ namespace QuanLyKho.Patterns.Observer
                     openAlert.Status = "Closed";
                     openAlert.ClosedAt = DateTime.UtcNow;
                     openAlert.CurrentStock = product.StockQuantity;
+
+                    // 🔔 Push thông báo đã phục hồi
+                    await _hub.Clients.All.SendAsync("StockRestored", new
+                    {
+                        productId   = product.ProductId,
+                        productName = product.Name,
+                        currentStock = product.StockQuantity
+                    });
                 }
             }
         }

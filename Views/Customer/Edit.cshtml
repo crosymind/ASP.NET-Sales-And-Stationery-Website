@@ -1,0 +1,81 @@
+@model QuanLyKho.Models.Entities.Customer
+@{
+    ViewData["Title"] = "Chỉnh Sửa Khách Hàng - " + Model.FullName;
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="bi bi-pencil-square text-primary me-2"></i>Chỉnh Sửa Thông Tin Khách Hàng</h4>
+                <p class="text-muted small mb-0">Mã khách hàng: <strong class="text-dark">@Model.CustomerCode</strong></p>
+            </div>
+            <a asp-action="Details" asp-route-id="@Model.CustomerId" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Quay lại chi tiết
+            </a>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form asp-action="Edit" method="post">
+                    <input type="hidden" asp-for="CustomerId" />
+                    <input type="hidden" asp-for="CustomerCode" />
+                    <input type="hidden" asp-for="Points" />
+                    <input type="hidden" asp-for="TotalSpent" />
+                    <input type="hidden" asp-for="CreatedAt" />
+
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4"></div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="FullName" class="form-label fw-semibold">Họ và tên <span class="text-danger">*</span></label>
+                            <input asp-for="FullName" class="form-control" required />
+                            <span asp-validation-for="FullName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="PhoneNumber" class="form-label fw-semibold">Số điện thoại <span class="text-danger">*</span></label>
+                            <input asp-for="PhoneNumber" class="form-control" required />
+                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label fw-semibold">Email</label>
+                            <input asp-for="Email" type="email" class="form-control" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="CustomerGroup" class="form-label fw-semibold">Phân hạng nhóm khách</label>
+                            <select asp-for="CustomerGroup" class="form-select">
+                                <option value="Thường">Thường</option>
+                                <option value="VIP">VIP (Ưu đãi 5%)</option>
+                                <option value="Bán buôn">Bán buôn (Giá sỉ)</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Address" class="form-label fw-semibold">Địa chỉ liên hệ</label>
+                            <input asp-for="Address" class="form-control" />
+                            <span asp-validation-for="Address" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" asp-for="IsActive" id="isActiveSwitch">
+                                <label class="form-check-label fw-semibold" for="isActiveSwitch">Trạng thái hoạt động</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <a asp-action="Index" class="btn btn-outline-secondary px-4">Hủy</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                            <i class="bi bi-save me-1"></i> Cập Nhật
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

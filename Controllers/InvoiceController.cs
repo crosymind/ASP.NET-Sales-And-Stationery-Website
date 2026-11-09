@@ -49,6 +49,7 @@ namespace QuanLyKho.Controllers
 
         public class PosCheckoutRequest
         {
+            public int? CustomerId { get; set; }
             public string? CustomerName { get; set; }
             public string? CustomerPhone { get; set; }
             public string DiscountType { get; set; } = "None"; // None, Percentage, Fixed
@@ -80,7 +81,8 @@ namespace QuanLyKho.Controllers
                 request.DiscountValue,
                 request.PaymentMethod,
                 items,
-                userId);
+                userId,
+                request.CustomerId);
 
             if (res.Success)
             {

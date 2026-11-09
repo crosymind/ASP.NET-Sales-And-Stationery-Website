@@ -28,6 +28,7 @@ namespace QuanLyKho.Services.Implementations
         {
             var query = _context.Invoices
                 .Include(i => i.CreatedBy)
+                .Include(i => i.Customer)
                 .Include(i => i.Items)
                     .ThenInclude(it => it.Product)
                 .AsQueryable();
@@ -64,6 +65,7 @@ namespace QuanLyKho.Services.Implementations
         {
             return await _context.Invoices
                 .Include(i => i.CreatedBy)
+                .Include(i => i.Customer)
                 .Include(i => i.Items)
                     .ThenInclude(it => it.Product)
                         .ThenInclude(p => p!.Unit)
@@ -79,7 +81,8 @@ namespace QuanLyKho.Services.Implementations
             decimal discountValue,
             string paymentMethod,
             List<(int ProductId, int Quantity)> items,
-            int userId)
+            int userId,
+            int? customerId = null)
         {
             if (items == null || items.Count == 0)
             {
@@ -151,6 +154,42 @@ namespace QuanLyKho.Services.Implementations
                 decimal totalAmount = subtotal - discountAmount;
                 string invoiceCode = $"HD-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 4).ToUpper()}";
 
+                Customer? customer = null;
+                if (customerId.HasValue && customerId.Value > 0)
+                {
+                    customer = await _context.Customers.FindAsync(customerId.Value);
+                    if (customer != null)
+                    {
+                        customerName = string.IsNullOrWhiteSpace(customerName) ? customer.FullName : customerName;
+                        customerPhone = string.IsNullOrWhiteSpace(customerPhone) ? customer.PhoneNumber : customerPhone;
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(customerPhone))
+                {
+                    string cleanPhone = customerPhone.Trim();
+                    customer = await _context.Customers.FirstOrDefaultAsync(c => c.PhoneNumber == cleanPhone);
+                    if (customer == null)
+                    {
+                        customer = new Customer
+                        {
+                            CustomerCode = $"KH{DateTime.UtcNow:yyMMdd}{new Random().Next(100, 999)}",
+                            FullName = string.IsNullOrWhiteSpace(customerName) ? $"Khách hàng ({cleanPhone})" : customerName.Trim(),
+                            PhoneNumber = cleanPhone,
+                            CustomerGroup = "Thường",
+                            Points = 0,
+                            TotalSpent = 0m,
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        _context.Customers.Add(customer);
+                        await _context.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        customerName = string.IsNullOrWhiteSpace(customerName) ? customer.FullName : customerName;
+                    }
+                }
+
                 var invoice = new Invoice
                 {
                     InvoiceCode = invoiceCode,
@@ -161,12 +200,23 @@ namespace QuanLyKho.Services.Implementations
                     DiscountAmount = discountAmount,
                     TotalAmount = totalAmount,
                     PaymentMethod = paymentMethod,
+                    CustomerId = customer?.CustomerId,
                     CustomerName = customerName?.Trim(),
                     CustomerPhone = customerPhone?.Trim(),
                     CreatedById = userId,
                     CreatedAt = DateTime.UtcNow,
                     CompletedAt = DateTime.UtcNow
                 };
+
+                if (customer != null)
+                {
+                    customer.TotalSpent += totalAmount;
+                    customer.Points += (int)(totalAmount / 10000m);
+                    if (customer.TotalSpent >= 3000000m && customer.CustomerGroup == "Thường")
+                    {
+                        customer.CustomerGroup = "VIP";
+                    }
+                }
 
                 foreach (var invItem in invoiceItems)
                 {

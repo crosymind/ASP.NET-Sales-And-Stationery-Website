@@ -50,7 +50,7 @@ namespace QuanLyKho.Patterns.Strategy
             return discountType?.ToLower() switch
             {
                 "percentage" => new PercentageDiscountStrategy(),
-                "fixed" => new FixedAmountDiscountStrategy(),
+                "fixed" or "fixedamount" => new FixedAmountDiscountStrategy(),
                 _ => new NoDiscountStrategy()
             };
         }

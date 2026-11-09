@@ -1,0 +1,218 @@
+@model QuanLyKho.Models.Entities.Customer
+@{
+    ViewData["Title"] = "Hồ Sơ Khách Hàng - " + Model.FullName;
+    var invoices = ViewBag.Invoices as List<QuanLyKho.Models.Entities.Invoice> ?? new List<QuanLyKho.Models.Entities.Invoice>();
+    decimal vipTarget = 3000000m;
+    int vipPercent = Model.TotalSpent >= vipTarget ? 100 : (int)Math.Min(100, Math.Round((Model.TotalSpent / vipTarget) * 100m));
+    decimal remainingForVip = Math.Max(0m, vipTarget - Model.TotalSpent);
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-person-badge-fill text-primary me-2"></i>Hồ Sơ Khách Hàng: @Model.FullName</h4>
+        <p class="text-muted small mb-0">Mã khách hàng: <strong class="text-dark">@Model.CustomerCode</strong> &bull; Ngày đăng ký: @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.CustomerId" class="btn btn-primary fw-semibold">
+            <i class="bi bi-pencil me-1"></i> Sửa Thông Tin
+        </a>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Danh Sách KH
+        </a>
+    </div>
+</div>
+
+<!-- Customer KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-4">
+                <span class="text-muted small fw-bold text-uppercase">Phân Hạng Thành Viên</span>
+                <div class="mt-2">
+                    @if (Model.CustomerGroup == "VIP")
+                    {
+                        <span class="badge bg-warning text-dark fs-6 px-3 py-2 border border-warning"><i class="bi bi-star-fill me-1"></i>Khách VIP (Ưu đãi 5%)</span>
+                    }
+                    else if (Model.CustomerGroup == "Bán buôn")
+                    {
+                        <span class="badge bg-info-subtle text-info fs-6 px-3 py-2 border border-info-subtle">Khách Bán Buôn</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-light text-dark fs-6 px-3 py-2 border">Khách Thường</span>
+                    }
+                </div>
+                @if (Model.CustomerGroup == "Thường")
+                {
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between small text-muted mb-1">
+                            <span>Tiến độ lên VIP</span>
+                            <span class="fw-bold">@vipPercent%</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: @(vipPercent)%"></div>
+                        </div>
+                        <div class="text-muted mt-1" style="font-size: 0.75rem;">
+                            Mua thêm <strong>@remainingForVip.ToString("N0") đ</strong> để tự động lên VIP
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-4">
+                <span class="text-muted small fw-bold text-uppercase">Điểm Tích Lũy Hiện Tại</span>
+                <h3 class="fw-bold text-primary mt-2 mb-0">@Model.Points.ToString("N0") <small class="fs-6 text-muted">pts</small></h3>
+                <div class="text-muted small mt-1">Quy đổi: 10,000 đ = 1 điểm thưởng</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-4">
+                <span class="text-muted small fw-bold text-uppercase">Tổng Tiền Đã Mua</span>
+                <h3 class="fw-bold text-success mt-2 mb-0">@Model.TotalSpent.ToString("N0") <small class="fs-6 text-muted">đ</small></h3>
+                <div class="text-muted small mt-1">Tổng doanh số lũy kế</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-4">
+                <span class="text-muted small fw-bold text-uppercase">Số Hóa Đơn Đã Mua</span>
+                <h3 class="fw-bold text-dark mt-2 mb-0">@invoices.Count <small class="fs-6 text-muted">đơn hàng</small></h3>
+                <div class="text-muted small mt-1">Giao dịch tại quầy POS</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Left Column: Contact Info & Loyalty Points Adjustment -->
+    <div class="col-lg-4 d-flex flex-column gap-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-info-circle me-2 text-primary"></i>Thông Tin Liên Hệ</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="mb-3">
+                    <label class="text-muted small fw-semibold d-block">Số điện thoại</label>
+                    <span class="fw-bold text-dark fs-6"><i class="bi bi-telephone me-1 text-primary"></i>@Model.PhoneNumber</span>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small fw-semibold d-block">Email</label>
+                    <span class="text-dark">@(string.IsNullOrWhiteSpace(Model.Email) ? "Chưa cập nhật" : Model.Email)</span>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small fw-semibold d-block">Địa chỉ liên hệ</label>
+                    <span class="text-dark">@(string.IsNullOrWhiteSpace(Model.Address) ? "Chưa cập nhật" : Model.Address)</span>
+                </div>
+                <div>
+                    <label class="text-muted small fw-semibold d-block">Trạng thái thẻ thành viên</label>
+                    @if (Model.IsActive)
+                    {
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">Đang hoạt động</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Đã ngừng hoạt động</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Loyalty Points Adjustment Card -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-gift-fill me-2 text-warning"></i>Đổi Quà / Điều Chỉnh Điểm Thưởng</h6>
+            </div>
+            <div class="card-body p-4">
+                <form asp-action="AdjustPoints" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.CustomerId" />
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Số điểm cộng (+) hoặc trừ (-)</label>
+                        <input type="number" name="pointsDelta" class="form-control" placeholder="VD: -50 (đổi quà) hoặc +20 (thưởng)" required />
+                        <div class="form-text small">Nhập số âm (VD: <code>-50</code>) để trừ điểm đổi quà, số dương để cộng điểm.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Lý do điều chỉnh / Quà tặng quy đổi</label>
+                        <input type="text" name="reason" class="form-control" placeholder="VD: Đổi sổ tay quà tặng 50 điểm" required />
+                    </div>
+                    <button type="submit" class="btn btn-warning text-dark fw-bold w-100">
+                        <i class="bi bi-check2-circle me-1"></i> Cập Nhật Điểm Tích Lũy
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Purchase History -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-receipt me-2 text-primary"></i>Lịch Sử Mua Hàng (@invoices.Count đơn)</h6>
+                <a asp-controller="Invoice" asp-action="Pos" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-cart-plus me-1"></i> Tạo đơn mới tại POS
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Mã Hóa Đơn</th>
+                            <th>Ngày Giờ Mua</th>
+                            <th>Thanh Toán</th>
+                            <th class="text-center">Số Mặt Hàng</th>
+                            <th class="text-end">Giảm Giá</th>
+                            <th class="text-end">Thành Tiền</th>
+                            <th class="text-end pe-3">Xem</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (invoices.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="bi bi-bag-x fs-2 d-block mb-2 text-secondary"></i>
+                                    Khách hàng này chưa có giao dịch mua hàng nào.
+                                </td>
+                            </tr>
+                        }
+                        @foreach (var inv in invoices)
+                        {
+                            <tr>
+                                <td class="ps-3">
+                                    <a asp-controller="Invoice" asp-action="Details" asp-route-id="@inv.InvoiceId" class="fw-bold text-primary text-decoration-none">
+                                        @inv.InvoiceCode
+                                    </a>
+                                </td>
+                                <td class="small text-muted">@inv.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">
+                                        @(inv.PaymentMethod == "TienMat" ? "Tiền mặt" : "Chuyển khoản")
+                                    </span>
+                                </td>
+                                <td class="text-center fw-semibold">@inv.Items.Sum(x => x.Quantity)</td>
+                                <td class="text-end text-danger small">
+                                    @(inv.DiscountAmount > 0 ? "-" + inv.DiscountAmount.ToString("N0") + " đ" : "-")
+                                </td>
+                                <td class="text-end fw-bold text-success">@inv.TotalAmount.ToString("N0") đ</td>
+                                <td class="text-end pe-3">
+                                    <a asp-controller="Invoice" asp-action="Details" asp-route-id="@inv.InvoiceId" class="btn btn-sm btn-outline-secondary" title="Xem & In hóa đơn">
+                                        <i class="bi bi-printer"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

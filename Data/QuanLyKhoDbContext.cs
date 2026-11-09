@@ -14,6 +14,7 @@ namespace QuanLyKho.Data
         public DbSet<Unit> Units => Set<Unit>();
         public DbSet<Product> Products => Set<Product>();
         public DbSet<Supplier> Suppliers => Set<Supplier>();
+        public DbSet<Customer> Customers => Set<Customer>();
         public DbSet<PurchaseReceipt> PurchaseReceipts => Set<PurchaseReceipt>();
         public DbSet<PurchaseReceiptItem> PurchaseReceiptItems => Set<PurchaseReceiptItem>();
         public DbSet<Invoice> Invoices => Set<Invoice>();
@@ -82,10 +83,22 @@ namespace QuanLyKho.Data
                       .OnDelete(DeleteBehavior.Restrict);
             });
 
+            // Customer
+            modelBuilder.Entity<Customer>(entity =>
+            {
+                entity.HasIndex(c => c.CustomerCode).IsUnique();
+                entity.HasIndex(c => c.PhoneNumber);
+            });
+
             // Invoice
             modelBuilder.Entity<Invoice>(entity =>
             {
                 entity.HasIndex(i => i.InvoiceCode).IsUnique();
+
+                entity.HasOne(i => i.Customer)
+                      .WithMany(c => c.Invoices)
+                      .HasForeignKey(i => i.CustomerId)
+                      .OnDelete(DeleteBehavior.SetNull);
 
                 entity.HasOne(i => i.CreatedBy)
                       .WithMany(u => u.Invoices)
