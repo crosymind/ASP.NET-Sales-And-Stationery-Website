@@ -12,6 +12,114 @@ namespace QuanLyKho.Data
         {
             context.Database.EnsureCreated();
 
+            try
+            {
+                // Auto-create Customers table and CustomerId column if database already existed
+                if (context.Database.IsSqlServer())
+                {
+                    context.Database.ExecuteSqlRaw(@"
+                        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Customers')
+                        BEGIN
+                            CREATE TABLE [Customers] (
+                                [CustomerId] int IDENTITY(1,1) NOT NULL,
+                                [CustomerCode] nvarchar(50) NOT NULL,
+                                [FullName] nvarchar(150) NOT NULL,
+                                [PhoneNumber] nvarchar(20) NOT NULL,
+                                [Email] nvarchar(100) NULL,
+                                [Address] nvarchar(255) NULL,
+                                [Points] int NOT NULL DEFAULT 0,
+                                [CustomerGroup] nvarchar(30) NOT NULL DEFAULT N'Thường',
+                                [TotalSpent] decimal(18,2) NOT NULL DEFAULT 0,
+                                [IsActive] bit NOT NULL DEFAULT 1,
+                                [CreatedAt] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+                                CONSTRAINT [PK_Customers] PRIMARY KEY ([CustomerId])
+                            );
+                            CREATE UNIQUE INDEX [IX_Customers_CustomerCode] ON [Customers] ([CustomerCode]);
+                            CREATE INDEX [IX_Customers_PhoneNumber] ON [Customers] ([PhoneNumber]);
+                        END
+
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Invoices]') AND name = 'CustomerId')
+                        BEGIN
+                            ALTER TABLE [Invoices] ADD [CustomerId] int NULL;
+                            ALTER TABLE [Invoices] ADD CONSTRAINT [FK_Invoices_Customers_CustomerId] FOREIGN KEY ([CustomerId]) REFERENCES [Customers] ([CustomerId]) ON DELETE SET NULL;
+                        END
+
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Products]') AND name = 'ImageUrl')
+                        BEGIN
+                            ALTER TABLE [Products] ADD [ImageUrl] nvarchar(500) NULL;
+                        END
+                    ");
+                }
+            }
+            catch
+            {
+                // Fallback for in-memory or providers without raw SQL support
+            }
+
+            // Cập nhật ảnh mặc định cho các sản phẩm đã có nếu chưa có ảnh
+            try
+            {
+                var existingProducts = context.Products.Where(p => string.IsNullOrEmpty(p.ImageUrl)).ToList();
+                if (existingProducts.Any())
+                {
+                    foreach (var p in existingProducts)
+                    {
+                        p.ImageUrl = GetDefaultProductImageUrl(p.ProductCode, p.Name);
+                    }
+                    context.SaveChanges();
+                }
+            }
+            catch
+            {
+                // Ignore if Products table doesn't have ImageUrl in this moment
+            }
+
+            if (!context.Customers.Any())
+            {
+                context.Customers.AddRange(
+                    new Customer
+                    {
+                        CustomerCode = "KH-0001",
+                        FullName = "Nguyễn Văn An",
+                        PhoneNumber = "0901234567",
+                        Email = "an.nguyen@gmail.com",
+                        Address = "123 Cầu Giấy, Hà Nội",
+                        CustomerGroup = "Thường",
+                        Points = 50,
+                        TotalSpent = 500000m,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow.AddDays(-20)
+                    },
+                    new Customer
+                    {
+                        CustomerCode = "KH-0002",
+                        FullName = "Trần Thị Bích",
+                        PhoneNumber = "0987654321",
+                        Email = "bich.tran@gmail.com",
+                        Address = "45 Lê Lợi, TP.HCM",
+                        CustomerGroup = "VIP",
+                        Points = 420,
+                        TotalSpent = 4200000m,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow.AddDays(-15)
+                    },
+                    new Customer
+                    {
+                        CustomerCode = "KH-0003",
+                        FullName = "Công ty TNHH Văn Phòng Á Châu",
+                        PhoneNumber = "0912348888",
+                        Email = "contact@achau.vn",
+                        Address = "Tầng 5, Tòa nhà Bitexco, Q.1, TP.HCM",
+                        CustomerGroup = "Bán buôn",
+                        Points = 850,
+                        TotalSpent = 12500000m,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow.AddDays(-10)
+                    }
+                );
+                context.SaveChanges();
+            }
+
             if (context.Users.Any())
             {
                 return; // Database has been seeded
@@ -283,6 +391,38 @@ namespace QuanLyKho.Data
             });
 
             context.SaveChanges();
+        }
+
+        public static string GetDefaultProductImageUrl(string productCode, string productName)
+        {
+            string name = productName.ToLower();
+            if (name.Contains("bút") || name.Contains("mực") || name.Contains("pen"))
+            {
+                if (name.Contains("gel") || name.Contains("pilot"))
+                    return "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=400&auto=format&fit=crop&q=80";
+                return "https://images.unsplash.com/photo-1585336261026-41ff34e70e30?w=400&auto=format&fit=crop&q=80";
+            }
+            if (name.Contains("vở") || name.Contains("sổ") || name.Contains("campus"))
+            {
+                return "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&auto=format&fit=crop&q=80";
+            }
+            if (name.Contains("giấy") || name.Contains("double a") || name.Contains("bìa"))
+            {
+                return "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=400&auto=format&fit=crop&q=80";
+            }
+            if (name.Contains("kéo") || name.Contains("deli") || name.Contains("thước"))
+            {
+                return "https://images.unsplash.com/photo-1603513492128-ba7bc9b3e143?w=400&auto=format&fit=crop&q=80";
+            }
+            if (name.Contains("bấm kim") || name.Contains("kim bấm") || name.Contains("băng keo"))
+            {
+                return "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&auto=format&fit=crop&q=80";
+            }
+            if (name.Contains("máy tính") || name.Contains("casio"))
+            {
+                return "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=400&auto=format&fit=crop&q=80";
+            }
+            return "https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?w=400&auto=format&fit=crop&q=80";
         }
     }
 }

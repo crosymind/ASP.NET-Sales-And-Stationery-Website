@@ -1,9 +1,17 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using QuanLyKho.Data;
+using QuanLyKho.Hubs;
 using QuanLyKho.Patterns.Observer;
 using QuanLyKho.Services.Implementations;
 using QuanLyKho.Services.Interfaces;
+using QuanLyKho.Testing;
+
+if (args.Length > 0 && (args[0] == "--run-tests" || args[0] == "--test"))
+{
+    await FunctionalTestRunner.RunAllTestsAsync(args);
+    return;
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +34,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 builder.Services.AddAuthorization();
 
+// SignalR (real-time notifications)
+builder.Services.AddSignalR();
+
 // Observer Pattern Registrations
 builder.Services.AddScoped<IStockChangedObserver, LowStockObserver>();
 builder.Services.AddScoped<IStockChangedObserver, AuditLogObserver>();
@@ -35,6 +46,7 @@ builder.Services.AddScoped<IStockEventPublisher, StockEventPublisher>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ISupplierService, SupplierService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IPurchaseReceiptService, PurchaseReceiptService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<IReturnReceiptService, ReturnReceiptService>();
@@ -73,6 +85,9 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Map SignalR Hub
+app.MapHub<NotificationHub>("/hubs/notification");
 
 app.MapControllerRoute(
     name: "default",

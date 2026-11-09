@@ -10,9 +10,15 @@
         <h4 class="fw-bold mb-1"><i class="bi bi-cash-stack text-success me-2"></i>Báo Cáo Doanh Thu Thuần</h4>
         <p class="text-muted small mb-0">Doanh thu thuần = Tổng hóa đơn hoàn tất - Tổng tiền hoàn trả hàng (F.8.1, BR.17)</p>
     </div>
-    <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
-        <i class="bi bi-printer me-1"></i> In Báo Cáo
-    </button>
+    <div class="d-flex gap-2">
+        <a asp-action="ExportRevenueExcel" asp-route-from="@from" asp-route-to="@to"
+           class="btn btn-success fw-semibold">
+            <i class="bi bi-file-earmark-excel-fill me-1"></i> Xuất Excel
+        </a>
+        <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i> In Báo Cáo
+        </button>
+    </div>
 </div>
 
 <!-- Date Filter Form -->

@@ -106,6 +106,9 @@ namespace QuanLyKho.Models.Entities
 
         public int MinimumStock { get; set; } = 5;
 
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -236,6 +239,9 @@ namespace QuanLyKho.Models.Entities
 
         [MaxLength(20)]
         public string? CustomerPhone { get; set; }
+
+        public int? CustomerId { get; set; }
+        public Customer? Customer { get; set; }
 
         public int CreatedById { get; set; }
         public User? CreatedBy { get; set; }
@@ -450,5 +456,44 @@ namespace QuanLyKho.Models.Entities
         public string Details { get; set; } = string.Empty;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    }
+
+    public class Customer
+    {
+        [Key]
+        public int CustomerId { get; set; }
+
+        [Required]
+        [MaxLength(50)]
+        public string CustomerCode { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(150)]
+        public string FullName { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(20)]
+        public string PhoneNumber { get; set; } = string.Empty;
+
+        [MaxLength(100)]
+        public string? Email { get; set; }
+
+        [MaxLength(255)]
+        public string? Address { get; set; }
+
+        public int Points { get; set; } = 0;
+
+        [MaxLength(30)]
+        public string CustomerGroup { get; set; } = "Thường"; // Thường, VIP, Bán buôn
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TotalSpent { get; set; } = 0m;
+
+        public bool IsActive { get; set; } = true;
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // Navigation
+        public ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
     }
 }

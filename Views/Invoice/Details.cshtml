@@ -4,131 +4,419 @@
     bool canReturn = Model.Status == "Completed" && (User.IsInRole("Admin") || User.IsInRole("BanHang"));
 }
 
+@functions {
+    public static string DocSoThanhChu(decimal number)
+    {
+        long n = (long)Math.Round(number, 0);
+        if (n == 0) return "Không đồng";
+        if (n < 0) return "Âm " + DocSoThanhChu(Math.Abs(n)).ToLower();
+
+        string[] donVi = { "", "nghìn", "triệu", "tỷ", "nghìn tỷ", "triệu tỷ" };
+        string[] chuSo = { "không", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín" };
+
+        var parts = new System.Collections.Generic.List<string>();
+
+        long temp = n;
+        var groups = new System.Collections.Generic.List<int>();
+        while (temp > 0)
+        {
+            groups.Add((int)(temp % 1000));
+            temp /= 1000;
+        }
+
+        for (int i = groups.Count - 1; i >= 0; i--)
+        {
+            int g = groups[i];
+            if (g == 0) continue;
+
+            int tram = g / 100;
+            int chuc = (g % 100) / 10;
+            int dv = g % 10;
+
+            var gWords = new System.Collections.Generic.List<string>();
+
+            if (tram > 0 || i < groups.Count - 1)
+            {
+                gWords.Add(chuSo[tram] + " trăm");
+            }
+
+            if (chuc > 1)
+            {
+                gWords.Add(chuSo[chuc] + " mươi");
+                if (dv == 1) gWords.Add("mốt");
+                else if (dv == 4) gWords.Add("tư");
+                else if (dv == 5) gWords.Add("lăm");
+                else if (dv > 0) gWords.Add(chuSo[dv]);
+            }
+            else if (chuc == 1)
+            {
+                gWords.Add("mười");
+                if (dv == 5) gWords.Add("lăm");
+                else if (dv > 0) gWords.Add(chuSo[dv]);
+            }
+            else if (chuc == 0 && dv > 0)
+            {
+                if (tram > 0 || i < groups.Count - 1)
+                {
+                    gWords.Add("lẻ");
+                }
+                gWords.Add(chuSo[dv]);
+            }
+
+            string groupText = string.Join(" ", gWords);
+            if (!string.IsNullOrEmpty(donVi[i]))
+            {
+                groupText += " " + donVi[i];
+            }
+            parts.Add(groupText);
+        }
+
+        string result = string.Join(" ", parts).Trim();
+        if (result.Length > 0)
+        {
+            result = char.ToUpper(result[0]) + result.Substring(1) + " đồng chẵn.";
+        }
+        return result;
+    }
+}
+
+@section Styles {
+    <style>
+        /* Định dạng chuẩn Hóa đơn bán hàng (Đen trắng, không màu sắc) */
+        .invoice-paper {
+            background: #ffffff;
+            color: #000000;
+            font-family: "Times New Roman", Times, serif;
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 36px 44px;
+            border: 1px solid #d1d5db;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            line-height: 1.45;
+            font-size: 11.5pt;
+        }
+
+        .invoice-paper * {
+            color: #000000 !important;
+        }
+
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #000000;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+
+        .invoice-store-name {
+            font-size: 13pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+
+        .invoice-store-sub {
+            font-size: 10.5pt;
+        }
+
+        .invoice-code-box {
+            text-align: right;
+            font-size: 10.5pt;
+        }
+
+        .invoice-title-block {
+            text-align: center;
+            margin: 16px 0 18px 0;
+        }
+
+        .invoice-title {
+            font-size: 18pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .invoice-date {
+            font-style: italic;
+            font-size: 11pt;
+        }
+
+        .invoice-info-section {
+            margin-bottom: 14px;
+            font-size: 11.5pt;
+        }
+
+        .invoice-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            flex-wrap: wrap;
+        }
+
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+            font-size: 11pt;
+        }
+
+        .invoice-table th,
+        .invoice-table td {
+            border: 1px solid #000000 !important;
+            padding: 6px 8px;
+            vertical-align: middle;
+        }
+
+        .invoice-table thead th {
+            font-weight: bold;
+            text-align: center;
+            background-color: transparent !important;
+            text-transform: none;
+            font-size: 11pt;
+            letter-spacing: normal;
+        }
+
+        .invoice-table tfoot td {
+            padding: 6px 8px;
+        }
+
+        .invoice-amount-words {
+            margin: 10px 0 22px 0;
+            font-size: 11.5pt;
+        }
+
+        .invoice-signatures {
+            display: flex;
+            justify-content: space-between;
+            text-align: center;
+            margin-top: 18px;
+            margin-bottom: 65px;
+            page-break-inside: avoid;
+        }
+
+        .invoice-sig-col {
+            width: 45%;
+        }
+
+        .invoice-sig-title {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 11pt;
+        }
+
+        .invoice-sig-note {
+            font-style: italic;
+            font-size: 10pt;
+        }
+
+        .invoice-footer-note {
+            text-align: center;
+            border-top: 1px dashed #000000;
+            padding-top: 10px;
+            font-size: 10pt;
+            font-style: italic;
+        }
+
+        @@media print {
+            @@page {
+                size: A4 portrait;
+                margin: 12mm 15mm;
+            }
+
+            body, html {
+                background: #ffffff !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .invoice-paper {
+                max-width: 100% !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+        }
+    </style>
+}
+
+<!-- Thanh công cụ trên màn hình (Ẩn hoàn toàn khi in) -->
 <div class="d-flex justify-content-between align-items-center mb-4 d-print-none">
     <div>
         <div class="d-flex align-items-center gap-2">
-            <h4 class="fw-bold mb-0">Hóa Đơn: @Model.InvoiceCode</h4>
-            <span class="badge @(Model.Status == "Completed" ? "bg-success" : "bg-secondary") fs-6">
-                @Model.Status
+            <h4 class="fw-bold mb-0">Chi tiết Hóa đơn: @Model.InvoiceCode</h4>
+            <span class="badge bg-dark fs-6">
+                @(Model.Status == "Completed" ? "Đã hoàn thành" : Model.Status)
             </span>
         </div>
-        <p class="text-muted small mb-0 mt-1">Giao dịch bán lẻ tại quầy Minh Anh Stationery</p>
+        <p class="text-muted small mb-0 mt-1">Bản xem trước chuẩn hóa đơn bán hàng (Đen trắng) - Nhấn "In Hóa Đơn" để xuất ra máy in hoặc PDF</p>
     </div>
 
     <div class="d-flex gap-2">
         <a asp-action="Index" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i> Quay lại
         </a>
-        <button type="button" class="btn btn-light border" onclick="window.print()">
+        <button type="button" class="btn btn-dark" onclick="window.print()">
             <i class="bi bi-printer me-1"></i> In Hóa Đơn
         </button>
         @if (canReturn)
         {
-            <a asp-controller="ReturnReceipt" asp-action="Create" asp-route-invoiceId="@Model.InvoiceId" class="btn btn-warning text-dark fw-bold">
-                <i class="bi bi-arrow-counterclockwise me-1"></i> Trả Hàng Theo Hóa Đơn (F.6.1)
+            <a asp-controller="ReturnReceipt" asp-action="Create" asp-route-invoiceId="@Model.InvoiceId" class="btn btn-outline-dark">
+                <i class="bi bi-arrow-counterclockwise me-1"></i> Lập Phiếu Trả Hàng
             </a>
         }
     </div>
 </div>
 
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card border-0 shadow-sm p-4 p-md-5 bg-white" id="invoicePrintArea">
-            <!-- Header Store Info -->
-            <div class="text-center pb-4 mb-4 border-bottom">
-                <h4 class="fw-bold mb-1">CỬA HÀNG VĂN PHÒNG PHẨM MINH ANH</h4>
-                <div class="text-muted small">Địa chỉ: 123 Đường Văn Phòng, Quận Tân Bình, TP.HCM</div>
-                <div class="text-muted small">Điện thoại: 028 3812 3456 &bull; Hotline: 0909 123 456</div>
-                <h5 class="fw-bold text-primary mt-3 mb-1">HÓA ĐƠN BÁN HÀNG</h5>
-                <div class="small fw-semibold text-secondary">Mã số: @Model.InvoiceCode</div>
+<!-- Tờ Hóa Đơn Bán Hàng Chuẩn (Đen trắng, không màu sắc) -->
+<div class="invoice-paper" id="invoicePrintArea">
+    <!-- Đầu hóa đơn: Đơn vị bán hàng & Số hiệu -->
+    <div class="invoice-header">
+        <div>
+            <div class="invoice-store-name">CỬA HÀNG VĂN PHÒNG PHẨM MINH ANH</div>
+            <div class="invoice-store-sub">Địa chỉ: 123 Đường Văn Phòng, Quận Tân Bình, TP. Hồ Chí Minh</div>
+            <div class="invoice-store-sub">Điện thoại: 028 3812 3456 - Hotline: 0909 123 456</div>
+        </div>
+        <div class="invoice-code-box">
+            <div>Mẫu số: <strong>02GTTT3/001</strong></div>
+            <div>Số HĐ: <strong>@Model.InvoiceCode</strong></div>
+        </div>
+    </div>
+
+    <!-- Tiêu đề Hóa đơn -->
+    <div class="invoice-title-block">
+        <div class="invoice-title">HÓA ĐƠN BÁN HÀNG</div>
+        <div class="invoice-date">
+            Ngày @Model.CreatedAt.ToString("dd") tháng @Model.CreatedAt.ToString("MM") năm @Model.CreatedAt.ToString("yyyy")
+            (Giờ lập: @Model.CreatedAt.ToString("HH:mm"))
+        </div>
+    </div>
+
+    <!-- Thông tin Khách hàng & Giao dịch -->
+    <div class="invoice-info-section">
+        <div class="invoice-info-row">
+            <div>
+                Họ tên người mua hàng:
+                <strong>@(string.IsNullOrEmpty(Model.CustomerName) ? "Khách mua lẻ" : Model.CustomerName)</strong>
             </div>
-
-            <!-- Invoice Meta Information -->
-            <div class="row g-2 mb-4 small">
-                <div class="col-6">
-                    <div><span class="text-muted">Ngày giờ bán:</span> <strong>@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")</strong></div>
-                    <div><span class="text-muted">Thu ngân:</span> <strong>@(Model.CreatedBy?.FullName ?? Model.CreatedBy?.UserName)</strong></div>
-                </div>
-                <div class="col-6 text-end">
-                    <div><span class="text-muted">Khách hàng:</span> <strong>@(string.IsNullOrEmpty(Model.CustomerName) ? "Khách lẻ" : Model.CustomerName)</strong></div>
-                    @if (!string.IsNullOrEmpty(Model.CustomerPhone))
-                    {
-                        <div><span class="text-muted">SĐT:</span> <strong>@Model.CustomerPhone</strong></div>
-                    }
-                    <div><span class="text-muted">Phương thức:</span> <strong>@(Model.PaymentMethod == "TienMat" ? "Tiền mặt" : "Chuyển khoản")</strong></div>
-                </div>
+            <div>
+                Số điện thoại:
+                <strong>@(string.IsNullOrEmpty(Model.CustomerPhone) ? "................................" : Model.CustomerPhone)</strong>
             </div>
-
-            <!-- Items Table -->
-            <div class="table-responsive mb-4">
-                <table class="table table-sm align-middle mb-0">
-                    <thead class="border-top border-bottom table-light small">
-                        <tr>
-                            <th class="py-2">Tên Mặt Hàng</th>
-                            <th class="py-2 text-center">ĐVT</th>
-                            <th class="py-2 text-center">SL</th>
-                            <th class="py-2 text-end">Đơn Giá</th>
-                            <th class="py-2 text-end">Thành Tiền</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var itm in Model.Items)
-                        {
-                            <tr>
-                                <td class="py-2">
-                                    <div class="fw-semibold small">@itm.Product?.Name</div>
-                                    <div class="text-muted" style="font-size: 0.75rem;">Mã: @itm.Product?.ProductCode</div>
-                                </td>
-                                <td class="py-2 text-center small">@(itm.Product?.Unit?.Name ?? "-")</td>
-                                <td class="py-2 text-center fw-bold">@itm.Quantity</td>
-                                <td class="py-2 text-end small">@itm.UnitPrice.ToString("N0") đ</td>
-                                <td class="py-2 text-end fw-semibold small">@itm.Subtotal.ToString("N0") đ</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+        </div>
+        <div class="invoice-info-row">
+            <div>
+                Hình thức thanh toán:
+                <strong>@(Model.PaymentMethod == "TienMat" ? "Tiền mặt" : "Chuyển khoản")</strong>
             </div>
-
-            <!-- Pricing Summary -->
-            <div class="row justify-content-end mb-4">
-                <div class="col-sm-6">
-                    <div class="d-flex justify-content-between small py-1 border-bottom">
-                        <span class="text-muted">Tổng tạm tính:</span>
-                        <strong class="text-dark">@Model.Subtotal.ToString("N0") đ</strong>
-                    </div>
-                    @if (Model.DiscountAmount > 0)
-                    {
-                        <div class="d-flex justify-content-between small py-1 border-bottom text-danger">
-                            <span>Giảm giá (@(Model.DiscountType == "Percentage" ? $"{Model.DiscountValue}%" : "Cố định")):</span>
-                            <strong>-@Model.DiscountAmount.ToString("N0") đ</strong>
-                        </div>
-                    }
-                    <div class="d-flex justify-content-between py-2 border-bottom">
-                        <span class="fw-bold fs-6">TỔNG THANH TOÁN:</span>
-                        <span class="fw-bold fs-5 text-primary">@Model.TotalAmount.ToString("N0") đ</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Return Receipts if any -->
-            @if (Model.ReturnReceipts.Count > 0)
-            {
-                <div class="bg-light p-3 rounded border mb-4">
-                    <div class="fw-bold small text-warning mb-2"><i class="bi bi-arrow-counterclockwise me-1"></i> Lịch sử trả hàng liên quan đến hóa đơn này:</div>
-                    @foreach (var ret in Model.ReturnReceipts)
-                    {
-                        <div class="d-flex justify-content-between small mb-1">
-                            <span>Phiếu trả: <a asp-controller="ReturnReceipt" asp-action="Details" asp-route-id="@ret.ReturnId">@ret.ReturnCode</a> (@ret.CreatedAt.ToString("dd/MM/yyyy HH:mm"))</span>
-                            <strong class="text-danger">Đã hoàn: @ret.RefundAmount.ToString("N0") đ</strong>
-                        </div>
-                    }
-                </div>
-            }
-
-            <div class="text-center pt-3 border-top small text-muted">
-                <div><em>Cảm ơn Quý khách đã mua sắm tại Văn Phòng Phẩm Minh Anh!</em></div>
-                <div>Quý khách vui lòng giữ hóa đơn khi có nhu cầu đổi trả hàng trong 07 ngày.</div>
+            <div>
+                Thu ngân lập phiếu:
+                <strong>@(Model.CreatedBy?.FullName ?? Model.CreatedBy?.UserName ?? "Quản trị viên")</strong>
             </div>
         </div>
     </div>
+
+    <!-- Bảng chi tiết hàng hóa -->
+    <table class="invoice-table">
+        <thead>
+            <tr>
+                <th style="width: 45px;">STT</th>
+                <th style="width: 105px;">Mã hàng</th>
+                <th>Tên hàng hóa, quy cách</th>
+                <th style="width: 70px;">ĐVT</th>
+                <th style="width: 65px;">SL</th>
+                <th style="width: 115px;">Đơn giá</th>
+                <th style="width: 130px;">Thành tiền</th>
+            </tr>
+        </thead>
+        <tbody>
+            @{
+                int stt = 1;
+            }
+            @foreach (var itm in Model.Items)
+            {
+                <tr>
+                    <td class="text-center">@(stt++)</td>
+                    <td class="text-center">@(itm.Product?.ProductCode ?? "-")</td>
+                    <td>@(itm.Product?.Name ?? "-")</td>
+                    <td class="text-center">@(itm.Product?.Unit?.Name ?? "-")</td>
+                    <td class="text-center">@itm.Quantity</td>
+                    <td class="text-end">@itm.UnitPrice.ToString("N0")</td>
+                    <td class="text-end">@itm.Subtotal.ToString("N0")</td>
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="6" class="text-end">Cộng tiền hàng:</td>
+                <td class="text-end"><strong>@Model.Subtotal.ToString("N0")</strong></td>
+            </tr>
+            @if (Model.DiscountAmount > 0)
+            {
+                <tr>
+                    <td colspan="6" class="text-end">
+                        Chiết khấu / Giảm giá @(Model.DiscountType == "Percentage" ? $"({Model.DiscountValue:0.##}%)" : ""):
+                    </td>
+                    <td class="text-end"><strong>-@Model.DiscountAmount.ToString("N0")</strong></td>
+                </tr>
+            }
+            <tr>
+                <td colspan="6" class="text-end"><strong>TỔNG CỘNG TIỀN THANH TOÁN (VNĐ):</strong></td>
+                <td class="text-end" style="font-size: 12pt;"><strong>@Model.TotalAmount.ToString("N0")</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <!-- Số tiền bằng chữ -->
+    <div class="invoice-amount-words">
+        Số tiền viết bằng chữ: <strong><em>@DocSoThanhChu(Model.TotalAmount)</em></strong>
+    </div>
+
+    <!-- Chữ ký -->
+    <div class="invoice-signatures">
+        <div class="invoice-sig-col">
+            <div class="invoice-sig-title">NGƯỜI MUA HÀNG</div>
+            <div class="invoice-sig-note">(Ký, ghi rõ họ tên)</div>
+        </div>
+        <div class="invoice-sig-col">
+            <div class="invoice-sig-title">NGƯỜI BÁN HÀNG</div>
+            <div class="invoice-sig-note">(Ký, ghi rõ họ tên)</div>
+            <div style="margin-top: 55px; font-weight: bold;">
+                @(Model.CreatedBy?.FullName ?? Model.CreatedBy?.UserName)
+            </div>
+        </div>
+    </div>
+
+    <!-- Ghi chú cuối hóa đơn -->
+    <div class="invoice-footer-note">
+        Cảm ơn Quý khách đã mua hàng tại Văn Phòng Phẩm Minh Anh! Quý khách vui lòng kiểm tra hàng và giữ hóa đơn khi cần đổi trả trong vòng 07 ngày.
+    </div>
 </div>
+
+<!-- Lịch sử trả hàng (Chỉ hiển thị ở màn hình quản lý dưới chân trang, không in vào tờ hóa đơn) -->
+@if (Model.ReturnReceipts != null && Model.ReturnReceipts.Count > 0)
+{
+    <div class="mt-4 mx-auto d-print-none" style="max-width: 820px;">
+        <div class="card border p-3 bg-light">
+            <div class="fw-bold small mb-2">
+                <i class="bi bi-arrow-counterclockwise me-1"></i> Lịch sử phiếu trả hàng liên quan đến hóa đơn này (Thông tin nội bộ - không in trên hóa đơn):
+            </div>
+            @foreach (var ret in Model.ReturnReceipts)
+            {
+                <div class="d-flex justify-content-between small py-1 border-bottom">
+                    <span>
+                        Mã phiếu trả:
+                        <a asp-controller="ReturnReceipt" asp-action="Details" asp-route-id="@ret.ReturnId" class="fw-bold text-dark">
+                            @ret.ReturnCode
+                        </a>
+                        (@ret.CreatedAt.ToString("dd/MM/yyyy HH:mm"))
+                    </span>
+                    <strong>Hoàn tiền: @ret.RefundAmount.ToString("N0") đ</strong>
+                </div>
+            }
+        </div>
+    </div>
+}

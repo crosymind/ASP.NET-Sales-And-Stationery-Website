@@ -36,6 +36,18 @@ namespace QuanLyKho.Services.Interfaces
         Task<(bool Success, string Message)> ToggleStatusAsync(int id, int userId);
     }
 
+    public interface ICustomerService
+    {
+        Task<List<Customer>> GetAllAsync(string? search = null, bool activeOnly = false);
+        Task<Customer?> GetByIdAsync(int id);
+        Task<Customer?> GetByPhoneAsync(string phone);
+        Task<(bool Success, string Message, int CustomerId)> SaveAsync(Customer customer, int userId);
+        Task<(bool Success, string Message)> ToggleStatusAsync(int id, int userId);
+        Task<(bool Success, string Message)> DeleteAsync(int id, int userId);
+        Task<(bool Success, string Message)> AdjustPointsAsync(int id, int pointsDelta, string reason, int userId);
+        Task<List<Invoice>> GetCustomerInvoicesAsync(int customerId);
+    }
+
     public interface IPurchaseReceiptService
     {
         Task<List<PurchaseReceipt>> GetAllAsync(string? status = null, DateTime? from = null, DateTime? to = null);
@@ -49,7 +61,7 @@ namespace QuanLyKho.Services.Interfaces
     {
         Task<List<Invoice>> GetAllAsync(string? search = null, string? status = null, DateTime? from = null, DateTime? to = null);
         Task<Invoice?> GetByIdAsync(int id);
-        Task<(bool Success, string Message, int InvoiceId)> CreateAndCompleteInvoiceAsync(string? customerName, string? customerPhone, string discountType, decimal discountValue, string paymentMethod, List<(int ProductId, int Quantity)> items, int userId);
+        Task<(bool Success, string Message, int InvoiceId)> CreateAndCompleteInvoiceAsync(string? customerName, string? customerPhone, string discountType, decimal discountValue, string paymentMethod, List<(int ProductId, int Quantity)> items, int userId, int? customerId = null);
         Task<(bool Success, string Message)> CancelInvoiceAsync(int invoiceId, int userId);
     }
 

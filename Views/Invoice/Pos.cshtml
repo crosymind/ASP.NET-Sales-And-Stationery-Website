@@ -43,34 +43,51 @@
                              data-price="@p.SalePrice" 
                              data-stock="@p.StockQuantity"
                              data-unit="@(p.Unit?.Name ?? "")">
-                            <div class="card h-100 border text-start shadow-none position-relative rounded-3 p-2 d-flex flex-column justify-content-between" 
+                            <div class="card h-100 border text-start shadow-sm position-relative rounded-3 p-2 d-flex flex-column justify-content-between overflow-hidden" 
                                  onclick="addToCart(@p.ProductId)" 
                                  style="cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); background-color: #ffffff;"
-                                 onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.08)';"
-                                 onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                 onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 10px 20px rgba(0,0,0,0.08)';"
+                                 onmouseout="this.style.transform='none'; this.style.boxShadow='';">
                                 <div>
-                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <span class="badge bg-light text-secondary border font-monospace" style="font-size: 0.65rem;">@p.ProductCode</span>
-                                        @if (p.StockQuantity <= p.MinimumStock)
+                                    <!-- Hình ảnh sản phẩm -->
+                                    <div class="position-relative overflow-hidden rounded-2 mb-2 bg-light d-flex align-items-center justify-content-center" style="height: 110px;">
+                                        @if (!string.IsNullOrWhiteSpace(p.ImageUrl))
                                         {
-                                            <span class="badge bg-danger-subtle text-danger fw-bold" style="font-size: 0.65rem;">
-                                                <i class="bi bi-exclamation-triangle-fill me-1"></i>Tồn: @p.StockQuantity
-                                            </span>
+                                            <img src="@p.ImageUrl" alt="@p.Name" class="w-100 h-100" style="object-fit: cover; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('d-none');" />
+                                            <div class="d-none text-muted d-flex flex-column align-items-center justify-content-center w-100 h-100">
+                                                <i class="bi bi-box-seam fs-1 text-secondary opacity-50"></i>
+                                            </div>
                                         }
                                         else
                                         {
-                                            <span class="badge bg-success-subtle text-success fw-bold" style="font-size: 0.65rem;">
-                                                Tồn: @p.StockQuantity
-                                            </span>
+                                            <div class="text-secondary opacity-50 d-flex flex-column align-items-center justify-content-center w-100 h-100">
+                                                <i class="bi bi-box-seam fs-1"></i>
+                                            </div>
                                         }
+                                        <span class="position-absolute top-0 start-0 m-1 badge bg-dark bg-opacity-75 font-monospace" style="font-size: 0.65rem;">@p.ProductCode</span>
+                                        <div class="position-absolute top-0 end-0 m-1">
+                                            @if (p.StockQuantity <= p.MinimumStock)
+                                            {
+                                                <span class="badge bg-danger shadow-sm fw-bold" style="font-size: 0.65rem;">
+                                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Tồn: @p.StockQuantity
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success shadow-sm fw-bold" style="font-size: 0.65rem;">
+                                                    Tồn: @p.StockQuantity
+                                                </span>
+                                            }
+                                        </div>
                                     </div>
-                                    <h6 class="fw-bold text-dark text-truncate-2 mb-2 mt-1" style="font-size: 0.875rem; min-height: 2.4rem; line-height: 1.25; overflow: hidden;" title="@p.Name">
+
+                                    <h6 class="fw-bold text-dark text-truncate-2 mb-1" style="font-size: 0.85rem; min-height: 2.2rem; line-height: 1.25; overflow: hidden;" title="@p.Name">
                                         @p.Name
                                     </h6>
                                 </div>
-                                <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                                <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-1">
                                     <span class="fw-bold text-primary fs-6">@p.SalePrice.ToString("N0") <small class="text-muted" style="font-size: 0.7rem;">đ</small></span>
-                                    <span class="text-muted small">/@(p.Unit?.Name ?? "")</span>
+                                    <span class="badge bg-light text-muted border" style="font-size: 0.7rem;">@(p.Unit?.Name ?? "")</span>
                                 </div>
                             </div>
                         </div>
@@ -119,6 +136,30 @@
 
             <!-- Khu vực tính tiền & xác nhận thanh toán -->
             <div class="card-footer bg-light p-3 border-top">
+                <!-- Chọn Khách Hàng (CRM) -->
+                <div class="mb-3 p-2 bg-white rounded border position-relative">
+                    <label class="form-label small fw-bold text-muted mb-1 d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-person-fill text-primary me-1"></i>Khách hàng (CRM):</span>
+                        <button type="button" class="btn btn-link p-0 text-decoration-none small text-primary fw-bold" data-bs-toggle="modal" data-bs-target="#quickAddCustomerModal">
+                            <i class="bi bi-person-plus-fill me-1"></i>+ Thêm nhanh KH
+                        </button>
+                    </label>
+                    <div id="customerSelectedBox" class="d-none alert alert-info py-1 px-2 mb-1 d-flex justify-content-between align-items-center">
+                        <div class="small">
+                            <strong id="custNameDisplay"></strong> <span id="custBadge" class="badge bg-warning text-dark ms-1"></span>
+                            <div class="text-muted" style="font-size: 0.72rem;" id="custPhoneDisplay"></div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-2" onclick="clearSelectedCustomer()" title="Hủy chọn khách"><i class="bi bi-x-circle"></i></button>
+                    </div>
+                    <div id="customerSearchGroup">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                            <input type="text" id="custSearchInput" class="form-control" placeholder="Tìm theo tên hoặc SĐT..." autocomplete="off" oninput="onSearchCustomer(this.value)">
+                        </div>
+                        <div id="custSearchResults" class="list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1050; max-height: 180px; overflow-y: auto; left: 0;"></div>
+                    </div>
+                </div>
+
                 <!-- Tạm tính -->
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted small">Tạm tính:</span>
@@ -135,7 +176,7 @@
                             <select id="discountTypeSelect" class="form-select form-select-sm" onchange="recalculateTotal()">
                                 <option value="None">Không giảm</option>
                                 <option value="Percentage">Giảm theo %</option>
-                                <option value="FixedAmount">Giảm tiền mặt (đ)</option>
+                                <option value="Fixed">Giảm tiền mặt (đ)</option>
                             </select>
                         </div>
                         <div class="col-6">
@@ -152,10 +193,10 @@
                 <div class="mb-3">
                     <label class="form-label small fw-bold text-muted mb-1">Hình thức thanh toán:</label>
                     <div class="btn-group w-100" role="group">
-                        <input type="radio" class="btn-check" name="paymentMethod" id="payCash" value="Cash" checked>
+                        <input type="radio" class="btn-check" name="paymentMethod" id="payCash" value="TienMat" checked>
                         <label class="btn btn-outline-secondary btn-sm fw-semibold" for="payCash"><i class="bi bi-cash me-1"></i>Tiền mặt</label>
 
-                        <input type="radio" class="btn-check" name="paymentMethod" id="payTransfer" value="Transfer">
+                        <input type="radio" class="btn-check" name="paymentMethod" id="payTransfer" value="ChuyenKhoan">
                         <label class="btn btn-outline-secondary btn-sm fw-semibold" for="payTransfer"><i class="bi bi-qr-code me-1"></i>Chuyển khoản</label>
                     </div>
                 </div>
@@ -175,6 +216,47 @@
     </div>
 </div>
 
+<!-- Modal Thêm nhanh Khách hàng tại POS -->
+<div class="modal fade" id="quickAddCustomerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h6 class="modal-title fw-bold"><i class="bi bi-person-plus-fill me-2"></i>Đăng Ký Nhanh Khách Hàng (CRM)</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="quickCustError" class="alert alert-danger py-2 small d-none"></div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Họ và tên khách hàng <span class="text-danger">*</span></label>
+                    <input type="text" id="quickCustName" class="form-control" placeholder="Ví dụ: Lê Minh Hoàng" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Số điện thoại <span class="text-danger">*</span></label>
+                    <input type="text" id="quickCustPhone" class="form-control" placeholder="Ví dụ: 0909888777" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Nhóm khách hàng</label>
+                    <select id="quickCustGroup" class="form-select">
+                        <option value="Thường">Khách Thường (Tích điểm)</option>
+                        <option value="VIP">Khách VIP (Ưu đãi giảm 5%)</option>
+                        <option value="Bán buôn">Khách Bán buôn</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold">Địa chỉ</label>
+                    <input type="text" id="quickCustAddress" class="form-control" placeholder="Ví dụ: Quận Tân Bình, TP.HCM" />
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary btn-sm fw-bold px-3" id="btnSaveQuickCust" onclick="saveQuickCustomer()">
+                    <i class="bi bi-check2-circle me-1"></i> Lưu & Chọn Khách Này
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
     let cart = [];
@@ -185,7 +267,8 @@
         name = p.Name,
         price = p.SalePrice,
         stock = p.StockQuantity,
-        unit = p.Unit?.Name ?? ""
+        unit = p.Unit?.Name ?? "",
+        image = p.ImageUrl ?? ""
     })));
 
     function addToCart(productId) {
@@ -211,6 +294,7 @@
                 price: prod.price,
                 stock: prod.stock,
                 unit: prod.unit,
+                image: prod.image,
                 qty: 1
             });
         }
@@ -265,8 +349,13 @@
             html += `
                 <tr>
                     <td class="ps-3">
-                        <div class="fw-bold small text-dark">${item.name}</div>
-                        <div class="text-muted" style="font-size: 0.7rem;">${item.price.toLocaleString('vi-VN')} đ / ${item.unit}</div>
+                        <div class="d-flex align-items-center gap-2">
+                            ${item.image ? `<img src="${item.image}" alt="" class="rounded border flex-shrink-0" style="width:36px;height:36px;object-fit:cover;" onerror="this.remove()" />` : `<div class="rounded bg-light border d-flex align-items-center justify-content-center text-secondary flex-shrink-0" style="width:36px;height:36px;"><i class="bi bi-box-seam" style="font-size:0.85rem;"></i></div>`}
+                            <div class="overflow-hidden">
+                                <div class="fw-bold small text-dark text-truncate" style="max-width: 130px;" title="${item.name}">${item.name}</div>
+                                <div class="text-muted" style="font-size: 0.7rem;">${item.price.toLocaleString('vi-VN')} đ / ${item.unit}</div>
+                            </div>
+                        </div>
                     </td>
                     <td class="text-center">
                         <div class="input-group input-group-sm" style="width: 80px; margin: 0 auto;">
@@ -341,6 +430,129 @@
         }
     });
 
+    // Customer CRM logic
+    let selectedCustomer = null;
+    let searchDebounceTimer = null;
+
+    function onSearchCustomer(val) {
+        clearTimeout(searchDebounceTimer);
+        const resultsEl = document.getElementById("custSearchResults");
+        if (!val || val.trim().length < 2) {
+            resultsEl.classList.add("d-none");
+            resultsEl.innerHTML = "";
+            return;
+        }
+
+        searchDebounceTimer = setTimeout(async () => {
+            try {
+                const resp = await fetch(`/Customer/SearchApi?term=${encodeURIComponent(val.trim())}`);
+                const list = await resp.json();
+                if (list && list.length > 0) {
+                    let html = "";
+                    list.forEach(c => {
+                        html += `
+                            <button type="button" class="list-group-item list-group-item-action py-2" onclick="selectCustomer(${JSON.stringify(c).replace(/"/g, '&quot;')})">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <strong class="small text-dark">${c.name}</strong>
+                                    <span class="badge ${c.group === 'VIP' ? 'bg-warning text-dark' : 'bg-light text-dark border'}">${c.group}</span>
+                                </div>
+                                <div class="text-muted" style="font-size:0.75rem;">SĐT: ${c.phone} &bull; Điểm: ${c.points}</div>
+                            </button>
+                        `;
+                    });
+                    resultsEl.innerHTML = html;
+                    resultsEl.classList.remove("d-none");
+                } else {
+                    resultsEl.innerHTML = `<div class="list-group-item small text-muted text-center py-2">Không tìm thấy khách hàng</div>`;
+                    resultsEl.classList.remove("d-none");
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }, 300);
+    }
+
+    function selectCustomer(c) {
+        selectedCustomer = c;
+        document.getElementById("custSearchResults").classList.add("d-none");
+        document.getElementById("customerSearchGroup").classList.add("d-none");
+        const box = document.getElementById("customerSelectedBox");
+        box.classList.remove("d-none");
+        document.getElementById("custNameDisplay").textContent = c.name;
+        document.getElementById("custPhoneDisplay").textContent = `SĐT: ${c.phone} | Điểm: ${c.points}`;
+        const badge = document.getElementById("custBadge");
+        badge.textContent = c.group;
+        badge.className = c.group === 'VIP' ? 'badge bg-warning text-dark ms-1' : 'badge bg-light text-dark border ms-1';
+
+        // Auto apply VIP discount 5%
+        if (c.group === "VIP") {
+            const discType = document.getElementById("discountTypeSelect");
+            const discVal = document.getElementById("discountValueInput");
+            discType.value = "Percentage";
+            discVal.value = 5;
+            recalculateTotal();
+        }
+    }
+
+    function clearSelectedCustomer() {
+        selectedCustomer = null;
+        document.getElementById("customerSelectedBox").classList.add("d-none");
+        document.getElementById("customerSearchGroup").classList.remove("d-none");
+        document.getElementById("custSearchInput").value = "";
+    }
+
+    async function saveQuickCustomer() {
+        const name = document.getElementById("quickCustName").value.trim();
+        const phone = document.getElementById("quickCustPhone").value.trim();
+        const group = document.getElementById("quickCustGroup").value;
+        const address = document.getElementById("quickCustAddress").value.trim();
+        const errBox = document.getElementById("quickCustError");
+
+        if (!name || !phone) {
+            errBox.textContent = "Vui lòng nhập đầy đủ Họ tên và Số điện thoại.";
+            errBox.classList.remove("d-none");
+            return;
+        }
+        errBox.classList.add("d-none");
+
+        const btn = document.getElementById("btnSaveQuickCust");
+        btn.disabled = true;
+
+        try {
+            const resp = await fetch('/Customer/CreateQuickApi', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ FullName: name, PhoneNumber: phone, CustomerGroup: group, Address: address })
+            });
+            const data = await resp.json();
+            if (data.success && data.customer) {
+                selectCustomer(data.customer);
+                const modalEl = document.getElementById('quickAddCustomerModal');
+                const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                if (modalInstance) modalInstance.hide();
+                document.getElementById("quickCustName").value = "";
+                document.getElementById("quickCustPhone").value = "";
+                document.getElementById("quickCustAddress").value = "";
+            } else {
+                errBox.textContent = data.message || "Không thể thêm khách hàng.";
+                errBox.classList.remove("d-none");
+            }
+        } catch (err) {
+            errBox.textContent = "Lỗi kết nối máy chủ: " + err;
+            errBox.classList.remove("d-none");
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    // Close customer search dropdown when clicking outside
+    document.addEventListener("click", function (e) {
+        const group = document.getElementById("customerSearchGroup");
+        if (group && !group.contains(e.target)) {
+            document.getElementById("custSearchResults")?.classList.add("d-none");
+        }
+    });
+
     async function processCheckout() {
         if (cart.length === 0) {
             alert("Giỏ hàng đang trống! Vui lòng chọn sản phẩm trước khi thanh toán.");
@@ -352,6 +564,9 @@
         btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span> Đang xử lý thanh toán...`;
 
         const payload = {
+            CustomerId: selectedCustomer ? selectedCustomer.id : null,
+            CustomerName: selectedCustomer ? selectedCustomer.name : null,
+            CustomerPhone: selectedCustomer ? selectedCustomer.phone : null,
             Items: cart.map(x => ({ ProductId: x.id, Quantity: x.qty })),
             DiscountType: document.getElementById("discountTypeSelect").value,
             DiscountValue: parseFloat(document.getElementById("discountValueInput").value) || 0,

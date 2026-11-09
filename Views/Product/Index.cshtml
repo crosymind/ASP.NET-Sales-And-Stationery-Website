@@ -110,7 +110,15 @@
                             }
                         </td>
                         <td>
-                            <div class="fw-bold text-dark">@p.Name</div>
+                            <div class="d-flex align-items-center gap-2">
+                                @if (!string.IsNullOrWhiteSpace(p.ImageUrl))
+                                {
+                                    <img src="@p.ImageUrl" alt="" class="rounded border flex-shrink-0" style="width: 38px; height: 38px; object-fit: cover;" onerror="this.remove()" />
+                                }
+                                <div>
+                                    <div class="fw-bold text-dark">@p.Name</div>
+                                </div>
+                            </div>
                         </td>
                         <td><span class="badge bg-light text-secondary border">@p.Category?.Name</span></td>
                         <td class="text-center text-muted small">@(p.Unit?.Name ?? "-")</td>
